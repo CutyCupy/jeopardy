@@ -15,14 +15,13 @@
 
 <body>
     <h1>Willkommen zum Jeopardy-Spiel</h1>
-    <button class="btn-primary" onclick="joinGame()">Spiel beitreten</button>
     <div class="container-fluid">
         <div class="row">
             <div class="col">
-                
+
             </div>
             <div class="col">
-                
+
             </div>
             <div class="col">
                 <table class="table table-bordered table-striped table-light">
@@ -36,12 +35,18 @@
                     <tbody id="lobby">
                     </tbody>
                 </table>
+                <div class="d-grid">
+                    <button class="btn btn-primary btn-lg btn-block" onclick="joinGame()" id="join">Spiel
+                        beitreten</button>
+                </div>
             </div>
         </div>
     </div>
 
     <div id="question"></div>
     <div id="scoreboard"></div>
+
+    <div id="alert"></div>
 
     <script>
         let stompClient;
@@ -51,13 +56,15 @@
             stompClient = Stomp.over(socket);
             stompClient.connect({}, () => {
                 // TODO: Add needed subscriptions to updates when implemented
+                stompClient.subscribe("/user/topic/join", (msg) => {
+                    const join = document.getElementById("join");
+                    join.hidden = true;
 
+                    showAlert('success', `${msg.body ? 'Herzlich Willkommen' : 'Willkommen zurück'}! Jeden Moment sollte das Spiel starten!`);
+                });
 
                 stompClient.subscribe("/topic/lobby-update", (msg) => {
                     const q = JSON.parse(msg.body);
-
-                    console.log(q);
-
 
                     const lobby = document.getElementById("lobby");
 
@@ -73,12 +80,12 @@
                         place.scope = "row"
                         place.classList.add("text-end")
                         place.innerText = i + 1;
-                        
+
                         row.appendChild(place);
-                        
+
                         var name = row.insertCell(1);
                         name.innerText = q[i].name;
-                        
+
                         var score = row.insertCell(2);
                         score.innerText = q[i].score;
                         score.classList.add("text-end")
@@ -91,6 +98,22 @@
         function joinGame() {
             const name = prompt("Bitte gib deinen Namen ein:");
             stompClient.send("/app/join", {}, name);
+        }
+
+
+        function showAlert(type, message) {
+            const alertPlaceholder = document.getElementById('alert')
+            const wrapper = document.createElement('div')
+            wrapper.innerHTML = [
+                `<div class="alert alert-${type} alert-dismissible" role="alert">`,
+                `   <div>${message}</div>`,
+                '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
+                '</div>'
+            ].join('')
+
+            alertPlaceholder.append(wrapper)
+
+            setTimeout(() => wrapper.remove(), 5000)
         }
 
         connect();
