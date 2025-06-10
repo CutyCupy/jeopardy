@@ -17,10 +17,7 @@
     <h1>Willkommen zum Jeopardy-Spiel</h1>
     <div class="container-fluid">
         <div class="row">
-            <div class="col">
-
-            </div>
-            <div class="col">
+            <div class="col col-9">
 
             </div>
             <div class="col">
@@ -46,7 +43,7 @@
     <div id="question"></div>
     <div id="scoreboard"></div>
 
-    <div id="alert"></div>
+    <div id="alert" class="fixed-bottom m-5"></div>
 
     <script>
         let stompClient;
@@ -65,7 +62,7 @@
                     showAlert('success', `${JSON.parse(msg.body) ? 'Herzlich Willkommen' : 'Willkommen zurück'}! Jeden Moment sollte das Spiel starten!`);
                 });
 
-                // subscribs to lobby update messages and rebuilds the lobby table according to the given informations about the lobby.
+                // subscribes to lobby update messages and rebuilds the lobby table according to the given informations about the lobby.
                 stompClient.subscribe("/topic/lobby-update", (msg) => {
                     const q = JSON.parse(msg.body);
 
@@ -93,6 +90,9 @@
                         score.innerText = q[i].score;
                         score.classList.add("text-end")
                     }
+
+                    // TODO: Send more information for a detailed update analysis and more detailed notification to the players.
+                    showAlert('info', `Die Lobby wurde geupdated!`);
                 });
             });
 
@@ -106,15 +106,14 @@
 
 
         // showAlert is a simple utility function, that displays an information / notification for the player.
-        // type and message are required to identify the type of message ('error', 'success', 'warning', etc.) and the content of the message.
+        // type and message are required to identify the type of message ('danger', 'success', 'warning', etc.) and the content of the message.
         // duration is the display duration of the notification and if omitted will default to 5 seconds.
         function showAlert(type, message, duration) {
             const alertPlaceholder = document.getElementById('alert')
             const wrapper = document.createElement('div')
             wrapper.innerHTML = [
                 `<div class="alert alert-${type} alert-dismissible" role="alert">`,
-                `   <div>${message}</div>`,
-                '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
+                `   ${message}`,
                 '</div>'
             ].join('')
 
