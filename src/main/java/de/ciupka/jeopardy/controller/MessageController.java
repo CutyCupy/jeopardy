@@ -11,6 +11,11 @@ import de.ciupka.jeopardy.configs.UserPrincipal;
 import de.ciupka.jeopardy.game.LobbyService;
 import de.ciupka.jeopardy.services.NotificationService;
 
+
+/**
+ * MessageController is the {@code Controller} for WebSocket messages.
+ * @author Alexander Ciupka
+ */
 @Controller
 public class MessageController {
 

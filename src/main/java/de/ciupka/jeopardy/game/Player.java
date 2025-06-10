@@ -2,6 +2,11 @@ package de.ciupka.jeopardy.game;
 
 import java.util.UUID;
 
+/**
+ * This class represents a player that is participating in the game.
+ * The main purpose of this class is to keep track of the name and score of any given user.
+ * @author Alexander Ciupka
+ */
 public class Player {
 
     private String name;

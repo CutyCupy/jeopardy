@@ -56,13 +56,16 @@
             stompClient = Stomp.over(socket);
             stompClient.connect({}, () => {
                 // TODO: Add needed subscriptions to updates when implemented
+
+                // subscribes to user specific messages about lobby join information. Displays a message when joined successfully.
                 stompClient.subscribe("/user/topic/join", (msg) => {
                     const join = document.getElementById("join");
                     join.hidden = true;
 
-                    showAlert('success', `${msg.body ? 'Herzlich Willkommen' : 'Willkommen zurück'}! Jeden Moment sollte das Spiel starten!`);
+                    showAlert('success', `${JSON.parse(msg.body) ? 'Herzlich Willkommen' : 'Willkommen zurück'}! Jeden Moment sollte das Spiel starten!`);
                 });
 
+                // subscribs to lobby update messages and rebuilds the lobby table according to the given informations about the lobby.
                 stompClient.subscribe("/topic/lobby-update", (msg) => {
                     const q = JSON.parse(msg.body);
 
@@ -95,13 +98,17 @@
 
         }
 
+        // joinGame prompts the user to enter a name for themselves and sends given name to the backend
         function joinGame() {
             const name = prompt("Bitte gib deinen Namen ein:");
             stompClient.send("/app/join", {}, name);
         }
 
 
-        function showAlert(type, message) {
+        // showAlert is a simple utility function, that displays an information / notification for the player.
+        // type and message are required to identify the type of message ('error', 'success', 'warning', etc.) and the content of the message.
+        // duration is the display duration of the notification and if omitted will default to 5 seconds.
+        function showAlert(type, message, duration) {
             const alertPlaceholder = document.getElementById('alert')
             const wrapper = document.createElement('div')
             wrapper.innerHTML = [
@@ -113,7 +120,7 @@
 
             alertPlaceholder.append(wrapper)
 
-            setTimeout(() => wrapper.remove(), 5000)
+            setTimeout(() => wrapper.remove(), duration || 5000);
         }
 
         connect();
