@@ -22,7 +22,9 @@ public class GameService {
 
     private Category[] board;
     private QuestionIdentifier currentQuestionIdentifier;
-    private int currentPlayerIdx = 0;
+    private int currentPlayerIdx = -1;
+
+    private UUID master;
 
     public GameService() {
         this.players = new ArrayList<>();
@@ -33,7 +35,8 @@ public class GameService {
                                 7),
                         new Question("Welcher Planet ist der dritte von der Sonne?", 200,
                                 "Die Erde"),
-                        new TextQuestion("Welcher deutsche Bundeskanzler leitete die Wiedervereinigung 1990?",
+                        new TextQuestion(
+                                "Welcher deutsche Bundeskanzler leitete die Wiedervereinigung 1990?",
                                 300,
                                 "Helmut Kohl"),
                         new Question("Wie lautet der chemische Name für Kochsalz?", 600,
@@ -152,17 +155,17 @@ public class GameService {
     }
 
     public void answerQuestion(Player p, boolean wrong) {
-        if(this.currentQuestionIdentifier == null) {
+        if (this.currentQuestionIdentifier == null) {
             return;
-        } 
+        }
         Category c = this.getCategory(this.currentQuestionIdentifier.getCategory());
         AbstractQuestion q = c.getQuestion(this.currentQuestionIdentifier.getQuestion());
-    
-        if(p != null) {
+
+        if (p != null) {
             p.updateScore((wrong ? -1 : 1) * q.getPoints());
         }
 
-        if(!wrong) {
+        if (!wrong) {
             q.setAnswered(true);
             setCurrentQuestionIdentifier(null);
             currentPlayerIdx = (currentPlayerIdx + 1) % this.players.size();
@@ -170,6 +173,9 @@ public class GameService {
     }
 
     public Player getCurrentPlayer() {
+        if (currentPlayerIdx < 0) {
+            return null;
+        }
         return this.players.get(currentPlayerIdx);
     }
 
@@ -179,5 +185,13 @@ public class GameService {
             return result.get();
         }
         return null;
+    }
+
+    public UUID getMaster() {
+        return this.master;
+    }
+
+    public void setMaster(UUID id) {
+        this.master = id;
     }
 }

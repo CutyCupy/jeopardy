@@ -26,15 +26,21 @@ import de.ciupka.jeopardy.services.NotificationService;
 @Controller
 public class MessageController {
 
-    private static final String LOBBY_UPDATE = "/topic/lobby-update";
-    private static final String BOARD_UPDATE = "/topic/board-update";
-    private static final String QUESTION_UPDATE = "/topic/question-update";
-
     @Autowired
     private GameService game;
 
     @Autowired
     private NotificationService notifications;
+
+    @MessageMapping("/on-connect")
+    public void onConnect(Principal principal) {
+        UserPrincipal up = (UserPrincipal) principal;
+
+        this.notifications.sendGameMasterUpdate(up.getName());
+        this.notifications.sendBoardUpdate(up.getName());
+        this.notifications.sendLobbyUpdate(up.getName());
+        this.notifications.sendQuestionUpdate(up.getName());
+    }
 
     /**
      * Websocket Message Handler for join requests that will add the requesting
@@ -60,17 +66,10 @@ public class MessageController {
          * In general it might be smart to also send the 'reason' for a lobby update
          * with extra data based on reasoning.
          */
-        notifications.broadcastMessage(LOBBY_UPDATE, this.game.getLobby());
+        notifications.sendLobbyUpdate(null);
+        notifications.sendBoardUpdate(up.getName());
 
-        notifications.privateMessage(up.getName(), BOARD_UPDATE, this.game.getBoard());
         return added;
-    }
-
-    @MessageMapping("/board")
-    @SendToUser(BOARD_UPDATE)
-    public BoardUpdate board() {
-        return new BoardUpdate(this.game.getBoard(), this.game.getCurrentQuestionIdentifier(),
-                this.game.getCurrentPlayer());
     }
 
     @MessageMapping("/buzzer")
@@ -110,10 +109,20 @@ public class MessageController {
 
         this.game.setCurrentQuestionIdentifier(identifier);
 
-        this.notifications.broadcastMessage(BOARD_UPDATE,
-                new BoardUpdate(game.getBoard(), game.getCurrentQuestionIdentifier(), game.getCurrentPlayer()));
-        this.notifications.broadcastMessage(QUESTION_UPDATE, new SelectedQuestion(cat, qst, active));
+        this.notifications.sendBoardUpdate(null);
+        this.notifications.sendQuestionUpdate(null);
         return null;
+    }
+
+    @MessageMapping("/gamemaster")
+    @SendToUser("topic/gamemaster")
+    public boolean setGameMaster(Principal principal) {
+        UserPrincipal up = (UserPrincipal) principal;
+        this.game.setMaster(up.getID());
+
+        this.notifications.sendGameMasterUpdate(null);
+    
+        return true;
     }
 
     @MessageMapping("/skip-question")
@@ -124,10 +133,8 @@ public class MessageController {
 
         game.answerQuestion(p, false);
 
-        this.notifications.broadcastMessage(QUESTION_UPDATE, new SelectedQuestion());
-        this.notifications.broadcastMessage(LOBBY_UPDATE, this.game.getLobby());
-        this.notifications.broadcastMessage(BOARD_UPDATE,
-                new BoardUpdate(this.game.getBoard(), this.game.getCurrentQuestionIdentifier(),
-                        this.game.getCurrentPlayer()));
+        this.notifications.sendQuestionUpdate(null);
+        this.notifications.sendLobbyUpdate(null);
+        this.notifications.sendBoardUpdate(null);
     }
 }
