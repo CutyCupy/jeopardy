@@ -18,6 +18,10 @@ public abstract class AbstractQuestion {
         return points;
     }
 
+    public boolean allowWrongAnswer() {
+        return true;
+    }
+
     public String getQuestion() {
         return question;
     }

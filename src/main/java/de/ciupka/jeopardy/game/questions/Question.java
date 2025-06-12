@@ -6,4 +6,10 @@ public class Question extends AbstractQuestion {
         super(question, points, answer, Type.NORMAL);
     }
 
+
+    @Override
+    public boolean allowWrongAnswer() {
+        return false;
+    }
+
 }

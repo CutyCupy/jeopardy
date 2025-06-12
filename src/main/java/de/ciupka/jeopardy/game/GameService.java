@@ -162,14 +162,24 @@ public class GameService {
         AbstractQuestion q = c.getQuestion(this.currentQuestionIdentifier.getQuestion());
 
         if (p != null) {
-            p.updateScore((wrong ? -1 : 1) * q.getPoints());
+            int factor = 1;
+            if (wrong) {
+                factor = q.allowWrongAnswer() ? 0 : -1;
+            }
+            p.updateScore(factor * q.getPoints());
         }
+    }
 
-        if (!wrong) {
-            q.setAnswered(true);
-            setCurrentQuestionIdentifier(null);
-            currentPlayerIdx = (currentPlayerIdx + 1) % this.players.size();
+    public void closeQuestion() {
+        if (this.currentQuestionIdentifier == null) {
+            return;
         }
+        Category c = this.getCategory(this.currentQuestionIdentifier.getCategory());
+        AbstractQuestion q = c.getQuestion(this.currentQuestionIdentifier.getQuestion());
+
+        q.setAnswered(true);
+        setCurrentQuestionIdentifier(null);
+        currentPlayerIdx = (currentPlayerIdx + 1) % this.players.size();
     }
 
     public Player getCurrentPlayer() {
@@ -187,11 +197,31 @@ public class GameService {
         return null;
     }
 
+    public Player getPlayerByName(String name) {
+        Optional<Player> result = this.players.stream().filter((p) -> p.getName().equals(name)).findAny();
+        if (result.isPresent()) {
+            return result.get();
+        }
+        return null;
+    }
+
     public UUID getMaster() {
         return this.master;
     }
 
     public void setMaster(UUID id) {
         this.master = id;
+    }
+
+    public boolean isActive() {
+        return this.currentPlayerIdx >= 0;
+    }
+
+    public void start() {
+        if (this.isActive()) {
+            return;
+        }
+
+        this.currentPlayerIdx = (int) (this.players.size() * Math.random());
     }
 }

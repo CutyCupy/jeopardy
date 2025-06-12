@@ -1,5 +1,7 @@
 let stompClient;
 
+let isGameMaster;
+
 const connect = () => {
     // ngrok http --host-header=localhost 8080
     // <ngrok url>/ws
@@ -11,7 +13,8 @@ const connect = () => {
         // subscribes to user specific messages about lobby join information. Displays a message when joined successfully.
         stompClient.subscribe("/user/topic/join", (msg) => {
             const join = document.getElementById("join");
-            join.hidden = true;
+
+            Array.from(join.children).forEach((v) => v.hidden = true);
 
             showAlert('success', `${JSON.parse(msg.body) ? 'Herzlich Willkommen' : 'Willkommen zurück'}! Jeden Moment sollte das Spiel starten!`);
         });
@@ -170,12 +173,11 @@ const connect = () => {
         })
 
 
-        stompClient.subscribe("/topic/buzzer-state", (msg) => {
+        stompClient.subscribe("/topic/buzzer-update", (msg) => {
             var state = JSON.parse(msg.body);
 
             updateBuzzerState(state);
-        })
-
+        });
 
         const gamemasterUpdate = (msg) => {
             var masterExists = JSON.parse(msg.body);
@@ -186,9 +188,55 @@ const connect = () => {
         stompClient.subscribe("/topic/gamemaster-update", gamemasterUpdate)
         stompClient.subscribe("/user/topic/gamemaster-update", gamemasterUpdate)
 
-        stompClient.subscribe("/user/topic/gamemaster", (_) => {
-            document.getElementById("gamemaster-href").click();
+        stompClient.subscribe("/user/topic/answer", (msg) => {
+            var answer = JSON.parse(msg.body);
+
+            var answers = document.getElementById("answers");
+
+            var row = answers.insertRow(-1);
+
+            var nameCell = row.insertCell(0);
+            nameCell.innerText = answer.player.name;
+
+            var answerCell = row.insertCell(1);
+            answerCell.innerText = answer.answer;
+
+            var judgeCell = row.insertCell(2);
+            row.classList.add("text-center");
+
+            var correctButton = document.createElement("button");
+            var wrongButton = document.createElement("button")
+
+            var eventListenerFactory = (correct) => function () {
+                stompClient.send("/app/answer", {}, JSON.stringify({
+                    playerName: answer.player.name,
+                    isCorrect: correct,
+                }))
+
+                wrongButton.disabled = true;
+                correctButton.disabled = true;
+            }
+
+            correctButton.classList.add("btn", "btn-success", "mx-1");
+            correctButton.style.fontFamily = "'Segoe UI Symbol', 'Arial', sans-serif";
+            correctButton.innerText = "✔"
+            correctButton.addEventListener('click', eventListenerFactory(true))
+
+            wrongButton.classList.add("btn", "btn-danger", "mx-1");
+            wrongButton.style.fontFamily = "'Segoe UI Symbol', 'Arial', sans-serif";
+            wrongButton.innerText = "✖"
+            wrongButton.addEventListener('click', eventListenerFactory(false))
+
+            judgeCell.appendChild(correctButton);
+            judgeCell.appendChild(wrongButton);
         })
+
+        stompClient.subscribe("/user/topic/gamemaster", (_) => {
+            isGameMaster = true;
+
+            document.getElementById("player-area").hidden = true;
+            document.getElementById("gamemaster-area").hidden = false;
+        });
 
 
         stompClient.send('/app/on-connect');
@@ -207,25 +255,34 @@ function hideQuestion() {
 
     Array.from(q.children).forEach((v) => v.style.display = 'none');
     Array.from(qat.children).forEach((v) => v.style.display = 'none');
+
+    var answers = document.getElementById("answers");
+    answers.replaceChildren();
 }
 
 function skipQuestion() {
     stompClient.send("/app/skip-question", {});
 }
 
-function updateBuzzerState(state) {
-    var buzzer = document.getElementById("buzzer");
-    if (state) {
-        buzzer.addEventListener('click', buzzerCallback);
-        buzzer.src = "./img/enabutton.png"
-    } else {
-        buzzer.removeEventListener('click', buzzerCallback);
-        buzzer.src = "./img/disbutton.png"
-    }
+function startGame() {
+    stompClient.send("/app/start-game", {});
 }
 
-function buzzerCallback() {
-    stompClient.send("/app/buzzer", {});
+function updateBuzzerState(state) {
+    var buzzer = document.getElementById("buzzer");
+    const newBuzzer = buzzer.cloneNode(true);
+    if (state) {
+        newBuzzer.addEventListener('click', submitAnswerFactory("buzzered"));
+        newBuzzer.src = "./img/enabutton.png"
+    } else {
+        newBuzzer.src = "./img/disbutton.png"
+    }
+
+    buzzer.parentNode.replaceChild(newBuzzer, buzzer);
+}
+
+function submitAnswerFactory(answer) {
+    return function () { stompClient.send("/app/submit-answer", {}, answer) };
 }
 
 function callbackClosure(i, callback) {

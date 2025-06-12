@@ -33,16 +33,15 @@
                     <tbody id="lobby">
                     </tbody>
                 </table>
-                <div class="d-grid">
-                    <button class="btn btn-primary btn-lg btn-block" onclick="joinGame()" id="join">Spiel
+                <div class="d-grid" id="join">
+                    <button class="btn btn-primary btn-lg btn-block" onclick="joinGame()">Spiel
                         beitreten</button>
-                    <button class="btn btn-danger btn-lg btn-block my-1" onclick="becomeGameMaster()"
-                        id="gamemaster" hidden="true">Gamemaster werden!</button>
-                    <a href="./gamemaster" hidden="true" id="gamemaster-href"></a>
+                    <button class="btn btn-danger btn-lg btn-block my-1" onclick="becomeGameMaster()" id="gamemaster"
+                        hidden="true">Gamemaster werden!</button>
                 </div>
             </div>
         </div>
-        <div class="row">
+        <div class="row" id="player-area">
             <div class="col col-9">
                 <div id="question-wrapper">
                     <h3 id="question-header"></h3>
@@ -59,9 +58,31 @@
             </div>
         </div>
 
-
-
-        <div id="scoreboard"></div>
+        <div class="row" id="gamemaster-area" hidden="false">
+            <div class="col">
+                <div id="question-wrapper">
+                    <h3 id="question-header"></h3>
+                    <span id="question"></span>
+                    <div id="question-data"></div>
+                </div>
+            </div>
+            <div class="col">
+                <button class="btn btn-success" style="width: 100%;" onclick="startGame()">Spiel starten</button>
+                <table class="table table-bordered table-striped table-light" id="answers-table">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Antwort</th>
+                            <th scope="col" class="text-center"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="answers">
+                    </tbody>
+                </table>
+                <button class="btn btn-danger" style="width: 100%;" onclick="skipQuestion()">Frage
+                    überspringen</button>
+            </div>
+        </div>
 
         <div id="alert" class="fixed-bottom m-5"></div>
 

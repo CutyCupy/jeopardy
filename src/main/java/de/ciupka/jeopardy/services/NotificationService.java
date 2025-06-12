@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import de.ciupka.jeopardy.controller.messages.Answer;
 import de.ciupka.jeopardy.controller.messages.BoardUpdate;
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
 import de.ciupka.jeopardy.controller.messages.SelectedQuestion;
@@ -11,7 +12,6 @@ import de.ciupka.jeopardy.game.Category;
 import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
-import jakarta.annotation.Nullable;
 
 /**
  * This service provides utility methods for communication with all or specific
@@ -26,6 +26,8 @@ public class NotificationService {
     private static final String BOARD_UPDATE = "/topic/board-update";
     private static final String QUESTION_UPDATE = "/topic/question-update";
     private static final String GAMEMASTER_UPDATE = "/topic/gamemaster-update";
+    private static final String BUZZER_UPDATE = "/topic/buzzer-update";
+    private static final String ANSWER = "/topic/answer";
 
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -74,5 +76,13 @@ public class NotificationService {
 
     public void sendGameMasterUpdate(final String userId) {
         this.message(userId, GAMEMASTER_UPDATE, this.game.getMaster() != null);
+    }
+
+    public void setBuzzers(boolean value) {
+        this.message(null, BUZZER_UPDATE, value);
+    }
+
+    public void sendAnswer(String userId, Answer answer) {
+        this.message(userId, ANSWER, answer);;
     }
 }

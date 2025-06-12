@@ -1,17 +1,17 @@
 package de.ciupka.jeopardy.controller;
 
 import java.security.Principal;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
 
 import de.ciupka.jeopardy.configs.UserPrincipal;
-import de.ciupka.jeopardy.controller.messages.BoardUpdate;
+import de.ciupka.jeopardy.controller.messages.Answer;
+import de.ciupka.jeopardy.controller.messages.AnswerEvaluation;
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
-import de.ciupka.jeopardy.controller.messages.SelectedQuestion;
 import de.ciupka.jeopardy.game.Category;
 import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.Player;
@@ -37,9 +37,12 @@ public class MessageController {
         UserPrincipal up = (UserPrincipal) principal;
 
         this.notifications.sendGameMasterUpdate(up.getName());
-        this.notifications.sendBoardUpdate(up.getName());
         this.notifications.sendLobbyUpdate(up.getName());
-        this.notifications.sendQuestionUpdate(up.getName());
+
+        if (this.game.isActive()) {
+            this.notifications.sendBoardUpdate(up.getName());
+            this.notifications.sendQuestionUpdate(up.getName());
+        }
     }
 
     /**
@@ -67,17 +70,52 @@ public class MessageController {
          * with extra data based on reasoning.
          */
         notifications.sendLobbyUpdate(null);
-        notifications.sendBoardUpdate(up.getName());
+        if (this.game.isActive()) {
+            notifications.sendBoardUpdate(up.getName());
+        }
 
         return added;
     }
 
-    @MessageMapping("/buzzer")
-    @SendTo("/topic/buzzer-state")
-    public boolean buzzer(Principal principal) {
+    @MessageMapping("/start-game")
+    public void startGame(Principal principal) {
         UserPrincipal up = (UserPrincipal) principal;
 
+        if (!up.getID().equals(this.game.getMaster()) || this.game.isActive()) {
+            return;
+        }
+
+        this.game.start();
+
+        this.notifications.sendBoardUpdate(null);
+    }
+
+    @MessageMapping("/submit-answer")
+    public boolean submitAnswer(String answer, Principal principal) {
+        this.notifications.setBuzzers(false);
+
+        UserPrincipal up = (UserPrincipal) principal;
+        // TODO: Mark as person that answered
+        Player answering = this.game.getPlayerByID(up.getID());
+
+        UUID master = this.game.getMaster();
+
+        this.notifications.sendAnswer(master.toString(), new Answer(answering, answer));
         return false;
+    }
+
+    @MessageMapping("/answer")
+    public void answer(AnswerEvaluation answer, Principal principal) {
+        UserPrincipal up = (UserPrincipal) principal;
+        if (!up.getID().equals(this.game.getMaster())) {
+            return;
+        }
+
+        this.game.answerQuestion(this.game.getPlayerByName(answer.getPlayerName()), !answer.isCorrect());
+        
+        this.notifications.sendLobbyUpdate(null);
+        this.notifications.sendBoardUpdate(null);
+    
     }
 
     @MessageMapping("/question")
@@ -121,17 +159,18 @@ public class MessageController {
         this.game.setMaster(up.getID());
 
         this.notifications.sendGameMasterUpdate(null);
-    
+
         return true;
     }
 
     @MessageMapping("/skip-question")
     public void skipQuestion(Principal principal) {
         UserPrincipal up = (UserPrincipal) principal;
+        if (!up.getID().equals(this.game.getMaster())) {
+            return;
+        }
 
-        Player p = this.game.getPlayerByID(up.getID());
-
-        game.answerQuestion(p, false);
+        game.closeQuestion();
 
         this.notifications.sendQuestionUpdate(null);
         this.notifications.sendLobbyUpdate(null);
