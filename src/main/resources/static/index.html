@@ -13,12 +13,13 @@
     <link rel="stylesheet" href="node_modules/octicons/build/font/octicons.css">
 </head>
 
-<body>
+<body style="background-color: lightgrey;">
     <h1>Willkommen zum Jeopardy-Spiel</h1>
     <div class="container-fluid">
         <div class="row">
             <div class="col col-9">
-
+                <div class="container" id="board">
+                </div>
             </div>
             <div class="col">
                 <table class="table table-bordered table-striped table-light">
@@ -38,92 +39,280 @@
                 </div>
             </div>
         </div>
-    </div>
+        <div class="row">
+            <div class="col col-9">
+                <div id="question-wrapper">
+                    <h3 id="question-header"></h3>
+                    <span id="question"></span>
+                    <div id="question-data"></div>
+                </div>
+            </div>
+            <div class="col">
+                <div id="question-answer-tool-wrapper">
+                    <img src="./img/disbutton.png" class="img-fluid ms-auto" id="buzzer" style="border-radius: 100%">
+                    <textarea class="form-control" id="answer-textfield" placeholder="Antwort..."></textarea>
+                    <input type="number" class="form-control" id="answer-numberfield" placeholder="Antwort...">
+                </div>
+            </div>
 
-    <div id="question"></div>
-    <div id="scoreboard"></div>
+            <button class="btn btn-danger" onclick="skipQuestion()">Frage überspringen</button>
+        </div>
 
-    <div id="alert" class="fixed-bottom m-5"></div>
 
-    <script>
-        let stompClient;
 
-        const connect = () => {
-            const socket = new SockJS('/jeopardy');
-            stompClient = Stomp.over(socket);
-            stompClient.connect({}, () => {
-                // TODO: Add needed subscriptions to updates when implemented
+        <div id="scoreboard"></div>
 
-                // subscribes to user specific messages about lobby join information. Displays a message when joined successfully.
-                stompClient.subscribe("/user/topic/join", (msg) => {
-                    const join = document.getElementById("join");
-                    join.hidden = true;
+        <div id="alert" class="fixed-bottom m-5"></div>
 
-                    showAlert('success', `${JSON.parse(msg.body) ? 'Herzlich Willkommen' : 'Willkommen zurück'}! Jeden Moment sollte das Spiel starten!`);
+        <script>
+            let stompClient;
+
+            const connect = () => {
+                // ngrok http --host-header=localhost 8080
+                // <ngrok url>/ws
+                const socket = new SockJS('/ws');
+                stompClient = Stomp.over(socket);
+                stompClient.connect({}, () => {
+                    // TODO: Add needed subscriptions to updates when implemented
+
+                    // subscribes to user specific messages about lobby join information. Displays a message when joined successfully.
+                    stompClient.subscribe("/user/topic/join", (msg) => {
+                        const join = document.getElementById("join");
+                        join.hidden = true;
+                        stompClient.send("/app/board", {});
+
+                        showAlert('success', `${JSON.parse(msg.body) ? 'Herzlich Willkommen' : 'Willkommen zurück'}! Jeden Moment sollte das Spiel starten!`);
+                    });
+
+                    // subscribes to lobby update messages and rebuilds the lobby table according to the given informations about the lobby.
+                    stompClient.subscribe("/topic/lobby-update", (msg) => {
+                        const q = JSON.parse(msg.body);
+
+                        const lobby = document.getElementById("lobby");
+
+                        const rowCount = lobby.rows.length;
+                        for (var i = 0; i < rowCount; i++) {
+                            lobby.deleteRow(0);
+                        }
+
+                        for (var i = 0; i < q.length; i++) {
+                            var row = lobby.insertRow(-1);
+
+                            row.id = `player:${q[i].name}`
+
+                            var place = document.createElement("th");
+                            place.scope = "row"
+                            place.classList.add("text-end")
+                            place.innerText = i + 1;
+
+                            row.appendChild(place);
+
+                            var name = row.insertCell(1);
+                            name.innerText = q[i].name;
+
+                            var score = row.insertCell(2);
+                            score.innerText = q[i].score;
+                            score.classList.add("text-end");
+                        }
+
+                        // TODO: Send more information for a detailed update analysis and more detailed notification to the players.
+                        showAlert('info', `Die Lobby wurde geupdated!`);
+                    });
+
+                    const boardUpdate = (msg) => {
+                        const update = JSON.parse(msg.body);
+
+                        highlightPlayer(update.player?.name);
+
+                        const board = document.getElementById("board");
+
+                        const createQuestionRow = (qIdx) => {
+                            const row = document.createElement("div");
+                            row.classList.add("row");
+
+                            for (var cIdx = 0; cIdx < update.board.length; cIdx++) {
+                                const category = update.board[cIdx];
+                                const question = category.questions[qIdx];
+                                const wrapper = document.createElement("div");
+                                wrapper.classList.add("col", "text-center", "d-grid", "my-1");
+
+                                isChosen = (update.active && update.active.question == qIdx && update.active.category == cIdx);
+
+                                console.log(JSON.stringify(update.active))
+
+                                const button = document.createElement("button");
+                                var buttonStyle = "btn-outline-primary";
+                                if (question.answered) {
+                                    buttonStyle = "btn-success";
+                                } else if (isChosen) {
+                                    buttonStyle = "btn-primary";
+                                } else if (update.active) {
+                                    buttonStyle = "btn-outline-secondary"
+                                }
+                                button.disabled = question.answered || (update.active && !isChosen);
+                                button.classList.add("btn", buttonStyle, "align-self-md-center");
+
+                                button.innerText = question.points;
+
+                                if (!update.active) {
+                                    button.addEventListener('click', callbackClosure(cIdx, (x) =>
+                                        stompClient.send(
+                                            "/app/question", {},
+                                            JSON.stringify(
+                                                {
+                                                    question: qIdx,
+                                                    category: x,
+                                                },
+                                            ),
+                                        ),
+                                    ));
+                                }
+
+                                wrapper.appendChild(button);
+                                row.appendChild(wrapper);
+                            }
+
+                            return row;
+                        }
+
+                        const row = document.createElement("div");
+                        row.classList.add("row");
+
+                        var rows = [row];
+
+                        for (var category of update.board) {
+                            const wrapper = document.createElement("div");
+                            wrapper.classList.add("col", "text-center");
+
+                            const header = document.createElement("h5");
+                            header.innerText = category.name;
+
+                            wrapper.appendChild(header);
+                            row.appendChild(wrapper);
+                        }
+
+                        // TODO: Nicht optimal gelöst
+                        for (var i = 0; i < update.board[0].questions.length; i++) {
+                            rows.push(createQuestionRow(i));
+                        }
+
+
+                        board.replaceChildren(...rows);
+                    };
+
+                    stompClient.subscribe("/user/topic/board-update", boardUpdate);
+                    stompClient.subscribe("/topic/board-update", boardUpdate);
+
+
+
+                    stompClient.subscribe("/topic/question-update", (msg) => {
+                        hideQuestion();
+                        var update = JSON.parse(msg.body);
+                        if (!update.question) {
+                            return;
+                        }
+                        var header = document.getElementById("question-header");
+                        var question = document.getElementById("question");
+                        var question_data = document.getElementById("question-data");
+
+                        toDisplay = [
+                            header, question
+                        ];
+
+                        header.innerText = `${update.category.name} - ${update.question.points} Punkte`
+                        question.innerText = update.question.question;
+                        switch (update.question.type) {
+                            case 'NORMAL':
+                                updateBuzzerState(true);
+                                toDisplay.push(document.getElementById("buzzer"));
+                                break;
+                            case 'TEXT':
+                            case 'ESTIMATE':
+                                var text = document.getElementById("answer-textfield");
+                                text.value = '';
+                                toDisplay.push(text);
+                        }
+
+
+                        toDisplay.forEach((v) => v.style.display = null)
+                    })
+
+
+                    stompClient.subscribe("/topic/buzzer-state", (msg) => {
+                        var state = JSON.parse(msg.body);
+
+                        updateBuzzerState(state);
+                    })
                 });
+            }
 
-                // subscribes to lobby update messages and rebuilds the lobby table according to the given informations about the lobby.
-                stompClient.subscribe("/topic/lobby-update", (msg) => {
-                    const q = JSON.parse(msg.body);
+            function highlightPlayer(name) {
+                var lobby = document.getElementById("lobby");
 
-                    const lobby = document.getElementById("lobby");
+                Array.from(lobby.getElementsByTagName("tr")).forEach((v) => name && v.id === `player:${name}` ? v.className = "table-dark" : v.className = "");
+            }
 
-                    const rowCount = lobby.rows.length;
-                    for (var i = 0; i < rowCount; i++) {
-                        lobby.deleteRow(0);
-                    }
+            function hideQuestion() {
+                var q = document.getElementById("question-wrapper");
+                var qat = document.getElementById("question-answer-tool-wrapper");
 
-                    for (var i = 0; i < q.length; i++) {
-                        var row = lobby.insertRow(-1);
+                Array.from(q.children).forEach((v) => v.style.display = 'none');
+                Array.from(qat.children).forEach((v) => v.style.display = 'none');
+            }
 
-                        var place = document.createElement("th");
-                        place.scope = "row"
-                        place.classList.add("text-end")
-                        place.innerText = i + 1;
+            function skipQuestion() {
+                stompClient.send("/app/skip-question", {});
+            }
 
-                        row.appendChild(place);
+            function updateBuzzerState(state) {
+                var buzzer = document.getElementById("buzzer");
+                if (state) {
+                    buzzer.addEventListener('click', buzzerCallback);
+                    buzzer.src = "./img/enabutton.png"
+                } else {
+                    buzzer.removeEventListener('click', buzzerCallback);
+                    buzzer.src = "./img/disbutton.png"
+                }
+            }
 
-                        var name = row.insertCell(1);
-                        name.innerText = q[i].name;
+            function buzzerCallback() {
+                stompClient.send("/app/buzzer", {});
+            }
 
-                        var score = row.insertCell(2);
-                        score.innerText = q[i].score;
-                        score.classList.add("text-end")
-                    }
-
-                    // TODO: Send more information for a detailed update analysis and more detailed notification to the players.
-                    showAlert('info', `Die Lobby wurde geupdated!`);
-                });
-            });
-
-        }
-
-        // joinGame prompts the user to enter a name for themselves and sends given name to the backend
-        function joinGame() {
-            const name = prompt("Bitte gib deinen Namen ein:");
-            stompClient.send("/app/join", {}, name);
-        }
+            function callbackClosure(i, callback) {
+                return function () {
+                    return callback(i);
+                }
+            }
 
 
-        // showAlert is a simple utility function, that displays an information / notification for the player.
-        // type and message are required to identify the type of message ('danger', 'success', 'warning', etc.) and the content of the message.
-        // duration is the display duration of the notification and if omitted will default to 5 seconds.
-        function showAlert(type, message, duration) {
-            const alertPlaceholder = document.getElementById('alert')
-            const wrapper = document.createElement('div')
-            wrapper.innerHTML = [
-                `<div class="alert alert-${type} alert-dismissible" role="alert">`,
-                `   ${message}`,
-                '</div>'
-            ].join('')
+            // joinGame prompts the user to enter a name for themselves and sends given name to the backend
+            function joinGame() {
+                const name = prompt("Bitte gib deinen Namen ein:");
+                stompClient.send("/app/join", {}, name);
+            }
 
-            alertPlaceholder.append(wrapper)
 
-            setTimeout(() => wrapper.remove(), duration || 5000);
-        }
+            // showAlert is a simple utility function, that displays an information / notification for the player.
+            // type and message are required to identify the type of message ('danger', 'success', 'warning', etc.) and the content of the message.
+            // duration is the display duration of the notification and if omitted will default to 5 seconds.
+            function showAlert(type, message, duration) {
+                const alertPlaceholder = document.getElementById('alert')
+                const wrapper = document.createElement('div')
+                wrapper.innerHTML = [
+                    `<div class="alert alert-${type} alert-dismissible" role="alert">`,
+                    `   ${message}`,
+                    '</div>'
+                ].join('')
 
-        connect();
-    </script>
+                alertPlaceholder.append(wrapper)
+
+                setTimeout(() => wrapper.remove(), duration || 5000);
+            }
+
+            connect();
+            hideQuestion();
+        </script>
 </body>
 
 </html>

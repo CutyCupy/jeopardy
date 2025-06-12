@@ -33,4 +33,8 @@ public class Player {
     public int getScore() {
         return this.score;
     }
+
+    public void updateScore(int delta) {
+        this.score += delta;
+    }
 }

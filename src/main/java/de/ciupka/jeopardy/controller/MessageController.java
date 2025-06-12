@@ -4,25 +4,34 @@ import java.security.Principal;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
 
 import de.ciupka.jeopardy.configs.UserPrincipal;
-import de.ciupka.jeopardy.game.LobbyService;
+import de.ciupka.jeopardy.controller.messages.BoardUpdate;
+import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
+import de.ciupka.jeopardy.controller.messages.SelectedQuestion;
+import de.ciupka.jeopardy.game.Category;
+import de.ciupka.jeopardy.game.GameService;
+import de.ciupka.jeopardy.game.Player;
+import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 import de.ciupka.jeopardy.services.NotificationService;
-
 
 /**
  * MessageController is the {@code Controller} for WebSocket messages.
+ * 
  * @author Alexander Ciupka
  */
 @Controller
 public class MessageController {
 
     private static final String LOBBY_UPDATE = "/topic/lobby-update";
+    private static final String BOARD_UPDATE = "/topic/board-update";
+    private static final String QUESTION_UPDATE = "/topic/question-update";
 
     @Autowired
-    private LobbyService lobby;
+    private GameService game;
 
     @Autowired
     private NotificationService notifications;
@@ -31,28 +40,94 @@ public class MessageController {
      * Websocket Message Handler for join requests that will add the requesting
      * {@code Player} to the lobby and send a lobby update to all other connected
      * players. For furthe information on the adding {@code Player} to the
-     * {@code LobbyService} see {@link de.ciupka.jeopardy.game.LobbyService#addPlayer LobbyService.addPlayer}
+     * {@code GameService} see {@link de.ciupka.jeopardy.game.GameService#addPlayer
+     * GameService.addPlayer}
      * 
      * @param name      The name of the {@code Player} that wants to join.
      * @param principal The {@code de.ciupka.jeopardy.configs.UserPrincipal} that
      *                  was created when a WebSocket connection was established.
      * @return True if a player was added to the lobby. If a player already exists
      *         with {@code name}, it will return false.
-     * @throws Exception
      */
     @MessageMapping("/join")
     @SendToUser("/topic/join")
-    public boolean join(String name, Principal principal) throws Exception {
-        final boolean added = this.lobby.addPlayer(((UserPrincipal) principal).getID(), name);
+    public boolean join(String name, Principal principal) {
+        UserPrincipal up = (UserPrincipal) principal;
+        final boolean added = this.game.addPlayer(up.getID(), name);
 
         /**
          * TODO: Might be necessary to send more data on lobby updates.
          * In general it might be smart to also send the 'reason' for a lobby update
          * with extra data based on reasoning.
          */
-        notifications.broadcastMessage(LOBBY_UPDATE, this.lobby.getPlayers());
+        notifications.broadcastMessage(LOBBY_UPDATE, this.game.getLobby());
 
+        notifications.privateMessage(up.getName(), BOARD_UPDATE, this.game.getBoard());
         return added;
     }
 
+    @MessageMapping("/board")
+    @SendToUser(BOARD_UPDATE)
+    public BoardUpdate board() {
+        return new BoardUpdate(this.game.getBoard(), this.game.getCurrentQuestionIdentifier(),
+                this.game.getCurrentPlayer());
+    }
+
+    @MessageMapping("/buzzer")
+    @SendTo("/topic/buzzer-state")
+    public boolean buzzer(Principal principal) {
+        UserPrincipal up = (UserPrincipal) principal;
+
+        return false;
+    }
+
+    @MessageMapping("/question")
+    @SendToUser("/topic/question")
+    public String question(QuestionIdentifier identifier, Principal principal) {
+        UserPrincipal up = (UserPrincipal) principal;
+        Player active = this.game.getCurrentPlayer();
+
+        if (!active.getUuid().equals(up.getID())) {
+            return "Du bist nicht an der Reihe!";
+        }
+
+        if (this.game.getCurrentQuestionIdentifier() != null) {
+            return "Es gibt bereits eine Frage!";
+        }
+
+        Category cat = this.game.getCategory(identifier.getCategory());
+        if (cat == null) {
+            return "Ungültige Kategorie-Auswahl";
+        }
+        AbstractQuestion qst = cat.getQuestion(identifier.getQuestion());
+        if (qst == null) {
+            return "Ungültige Fragen-Auswahl";
+        }
+
+        if (qst.isAnswered()) {
+            return "Frage wurde bereits beantwortet";
+        }
+
+        this.game.setCurrentQuestionIdentifier(identifier);
+
+        this.notifications.broadcastMessage(BOARD_UPDATE,
+                new BoardUpdate(game.getBoard(), game.getCurrentQuestionIdentifier(), game.getCurrentPlayer()));
+        this.notifications.broadcastMessage(QUESTION_UPDATE, new SelectedQuestion(cat, qst, active));
+        return null;
+    }
+
+    @MessageMapping("/skip-question")
+    public void skipQuestion(Principal principal) {
+        UserPrincipal up = (UserPrincipal) principal;
+
+        Player p = this.game.getPlayerByID(up.getID());
+
+        game.answerQuestion(p, false);
+
+        this.notifications.broadcastMessage(QUESTION_UPDATE, new SelectedQuestion());
+        this.notifications.broadcastMessage(LOBBY_UPDATE, this.game.getLobby());
+        this.notifications.broadcastMessage(BOARD_UPDATE,
+                new BoardUpdate(this.game.getBoard(), this.game.getCurrentQuestionIdentifier(),
+                        this.game.getCurrentPlayer()));
+    }
 }
