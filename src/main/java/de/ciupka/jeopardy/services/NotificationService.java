@@ -6,12 +6,8 @@ import org.springframework.stereotype.Service;
 
 import de.ciupka.jeopardy.controller.messages.Answer;
 import de.ciupka.jeopardy.controller.messages.BoardUpdate;
-import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
 import de.ciupka.jeopardy.controller.messages.SelectedQuestion;
-import de.ciupka.jeopardy.game.Category;
 import de.ciupka.jeopardy.game.GameService;
-import de.ciupka.jeopardy.game.Player;
-import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 
 /**
  * This service provides utility methods for communication with all or specific
@@ -55,34 +51,29 @@ public class NotificationService {
         this.message(userId, BOARD_UPDATE,
                 new BoardUpdate(
                         this.game.getBoard(),
-                        this.game.getCurrentQuestionIdentifier(),
+                        this.game.getSelectedQuestion(),
                         this.game.getCurrentPlayer()));
     }
 
     public void sendQuestionUpdate(final String userId) {
-        Player active = this.game.getCurrentPlayer();
-
-        QuestionIdentifier identifier = this.game.getCurrentQuestionIdentifier();
-        if (identifier == null) {
+        SelectedQuestion question = this.game.getSelectedQuestion();
+        if (question == null) {
             this.message(userId, QUESTION_UPDATE, new SelectedQuestion());
             return;
         }
-
-        Category cat = this.game.getCategory(identifier.getCategory());
-        AbstractQuestion qst = cat.getQuestion(identifier.getQuestion());
-
-        this.message(userId, QUESTION_UPDATE, new SelectedQuestion(cat, qst, active));
+        this.message(userId, QUESTION_UPDATE, question);
     }
 
     public void sendGameMasterUpdate(final String userId) {
         this.message(userId, GAMEMASTER_UPDATE, this.game.getMaster() != null);
     }
 
-    public void setBuzzers(boolean value) {
+    public void setBuzzer(String userId, boolean value) {
         this.message(null, BUZZER_UPDATE, value);
     }
 
     public void sendAnswer(String userId, Answer answer) {
-        this.message(userId, ANSWER, answer);;
+        this.message(userId, ANSWER, answer);
+        ;
     }
 }

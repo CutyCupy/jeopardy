@@ -2,15 +2,13 @@ package de.ciupka.jeopardy.game;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
+import de.ciupka.jeopardy.controller.messages.SelectedQuestion;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 import de.ciupka.jeopardy.game.questions.EstimateQuestion;
 import de.ciupka.jeopardy.game.questions.Question;
@@ -21,9 +19,9 @@ public class GameService {
     private List<Player> players;
 
     private Category[] board;
-    private QuestionIdentifier currentQuestionIdentifier;
-    private int currentPlayerIdx = -1;
+    private SelectedQuestion selectedQuestion;
 
+    private int currentPlayerIdx = -1;
     private UUID master;
 
     public GameService() {
@@ -146,22 +144,39 @@ public class GameService {
         return this.board[idx];
     }
 
-    public void setCurrentQuestionIdentifier(QuestionIdentifier id) {
-        this.currentQuestionIdentifier = id;
+    public boolean selectQuestion(QuestionIdentifier id) {
+        if (this.selectedQuestion != null) {
+            return false; // TODO: Maybe use Exceptions for error handling different cases?
+        }
+
+        Category cat = getCategory(id.getCategory());
+        if (cat == null) {
+            return false; // TODO: Maybe use Exceptions for error handling different cases?
+        }
+        AbstractQuestion qst = cat.getQuestion(id.getQuestion());
+        if (qst == null) {
+            return false; // TODO: Maybe use Exceptions for error handling different cases?
+        }
+
+        if (qst.isAnswered()) {
+            return false;
+        }
+
+        this.selectedQuestion = new SelectedQuestion(id, cat, qst, getCurrentPlayer());
+        return true;
     }
 
-    public QuestionIdentifier getCurrentQuestionIdentifier() {
-        return currentQuestionIdentifier;
+    public SelectedQuestion getSelectedQuestion() {
+        return selectedQuestion;
     }
 
     public void answerQuestion(Player p, boolean wrong) {
-        if (this.currentQuestionIdentifier == null) {
+        if (this.selectedQuestion == null) {
             return;
         }
-        Category c = this.getCategory(this.currentQuestionIdentifier.getCategory());
-        AbstractQuestion q = c.getQuestion(this.currentQuestionIdentifier.getQuestion());
 
         if (p != null) {
+            AbstractQuestion q = selectedQuestion.getQuestion();
             int factor = 1;
             if (wrong) {
                 factor = q.allowWrongAnswer() ? 0 : -1;
@@ -171,14 +186,12 @@ public class GameService {
     }
 
     public void closeQuestion() {
-        if (this.currentQuestionIdentifier == null) {
+        if (this.selectedQuestion == null) {
             return;
         }
-        Category c = this.getCategory(this.currentQuestionIdentifier.getCategory());
-        AbstractQuestion q = c.getQuestion(this.currentQuestionIdentifier.getQuestion());
 
-        q.setAnswered(true);
-        setCurrentQuestionIdentifier(null);
+        selectedQuestion.getQuestion().setAnswered(true);
+        selectedQuestion = null;
         currentPlayerIdx = (currentPlayerIdx + 1) % this.players.size();
     }
 

@@ -6,12 +6,12 @@ import de.ciupka.jeopardy.game.Player;
 public class BoardUpdate {
 
     private Category[] board;
-    private QuestionIdentifier active;
+    private SelectedQuestion selectedQuestion;
     private Player player;
 
-    public BoardUpdate(Category[] board, QuestionIdentifier active, Player player) {
+    public BoardUpdate(Category[] board, SelectedQuestion active, Player player) {
         this.board = board;
-        this.active = active;
+        this.selectedQuestion = active;
         this.player = player;
     }
 
@@ -19,8 +19,8 @@ public class BoardUpdate {
         return board;
     }
 
-    public QuestionIdentifier getActive() {
-        return active;
+    public SelectedQuestion getSelectedQuestion() {
+        return selectedQuestion;
     }
 
     public Player getPlayer() {

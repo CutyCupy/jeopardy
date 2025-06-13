@@ -12,10 +12,8 @@ import de.ciupka.jeopardy.configs.UserPrincipal;
 import de.ciupka.jeopardy.controller.messages.Answer;
 import de.ciupka.jeopardy.controller.messages.AnswerEvaluation;
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
-import de.ciupka.jeopardy.game.Category;
 import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.Player;
-import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 import de.ciupka.jeopardy.services.NotificationService;
 
 /**
@@ -92,10 +90,9 @@ public class MessageController {
 
     @MessageMapping("/submit-answer")
     public boolean submitAnswer(String answer, Principal principal) {
-        this.notifications.setBuzzers(false);
-
         UserPrincipal up = (UserPrincipal) principal;
-        // TODO: Mark as person that answered
+        this.notifications.setBuzzer(up.getName(), false);
+
         Player answering = this.game.getPlayerByID(up.getID());
 
         UUID master = this.game.getMaster();
@@ -112,10 +109,10 @@ public class MessageController {
         }
 
         this.game.answerQuestion(this.game.getPlayerByName(answer.getPlayerName()), !answer.isCorrect());
-        
+
         this.notifications.sendLobbyUpdate(null);
         this.notifications.sendBoardUpdate(null);
-    
+
     }
 
     @MessageMapping("/question")
@@ -128,24 +125,9 @@ public class MessageController {
             return "Du bist nicht an der Reihe!";
         }
 
-        if (this.game.getCurrentQuestionIdentifier() != null) {
-            return "Es gibt bereits eine Frage!";
+        if (!this.game.selectQuestion(identifier)) {
+            return "Fehler bei der Auswahl der Frage!";
         }
-
-        Category cat = this.game.getCategory(identifier.getCategory());
-        if (cat == null) {
-            return "Ungültige Kategorie-Auswahl";
-        }
-        AbstractQuestion qst = cat.getQuestion(identifier.getQuestion());
-        if (qst == null) {
-            return "Ungültige Fragen-Auswahl";
-        }
-
-        if (qst.isAnswered()) {
-            return "Frage wurde bereits beantwortet";
-        }
-
-        this.game.setCurrentQuestionIdentifier(identifier);
 
         this.notifications.sendBoardUpdate(null);
         this.notifications.sendQuestionUpdate(null);

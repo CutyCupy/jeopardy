@@ -11,8 +11,11 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
 
 /**
- * This class is a custom HandshakeHandler that is used to create a {@code UserPrincipal} object whenever a user is connecting via WebSocket.
- * Apart from {@code determineUser} every other Method is extended from {@link org.springframework.web.socket.server.support.DefaultHandShakeHandler}
+ * This class is a custom HandshakeHandler that is used to create a
+ * {@code UserPrincipal} object whenever a user is connecting via WebSocket.
+ * Apart from {@code determineUser} every other Method is extended from
+ * {@link org.springframework.web.socket.server.support.DefaultHandShakeHandler}
+ * 
  * @author Alexander Ciupka
  */
 public class UserHandshakeHandler extends DefaultHandshakeHandler {
