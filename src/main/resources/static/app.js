@@ -1,6 +1,26 @@
 let stompClient;
-
 let isGameMaster;
+
+const gamemasterButton = document.getElementById("gamemaster");
+const joinButtons = document.getElementById("join")
+const lobby = document.getElementById("lobby");
+const board = document.getElementById("board");
+
+const question_header = document.getElementById("question-header");
+const question = document.getElementById("question");
+const question_data = document.getElementById("question-data");
+
+var buzzer = document.getElementById("buzzer");
+const answerText = document.getElementById("answer-textfield");
+const answers = document.getElementById("answers");
+
+const playerArea = document.getElementById("player-area")
+const gamemasterArea = document.getElementById("gamemaster-area")
+
+const questionWrapper = document.getElementById("question-wrapper");
+const questionAnswerToolWrapper = document.getElementById("question-answer-tool-wrapper");
+
+const alertPlaceholder = document.getElementById('alert')
 
 const connect = () => {
     // ngrok http --host-header=localhost 8080
@@ -12,9 +32,7 @@ const connect = () => {
 
         // subscribes to user specific messages about lobby join information. Displays a message when joined successfully.
         stompClient.subscribe("/user/topic/join", (msg) => {
-            const join = document.getElementById("join");
-
-            Array.from(join.children).forEach((v) => v.hidden = true);
+            Array.from(joinButtons.children).forEach((v) => v.hidden = true);
 
             showAlert('success', `${JSON.parse(msg.body) ? 'Herzlich Willkommen' : 'Willkommen zurück'}! Jeden Moment sollte das Spiel starten!`);
         });
@@ -22,8 +40,6 @@ const connect = () => {
         // subscribes to lobby update messages and rebuilds the lobby table according to the given informations about the lobby.
         stompClient.subscribe("/topic/lobby-update", (msg) => {
             const q = JSON.parse(msg.body);
-
-            const lobby = document.getElementById("lobby");
 
             const rowCount = lobby.rows.length;
             for (var i = 0; i < rowCount; i++) {
@@ -59,7 +75,6 @@ const connect = () => {
 
             highlightPlayer(update.player?.name);
 
-            const board = document.getElementById("board");
 
             const createQuestionRow = (qIdx) => {
                 const row = document.createElement("div");
@@ -146,26 +161,22 @@ const connect = () => {
             if (!update.question) {
                 return;
             }
-            var header = document.getElementById("question-header");
-            var question = document.getElementById("question");
-            var question_data = document.getElementById("question-data");
 
             toDisplay = [
-                header, question
+                question_header, question
             ];
 
-            header.innerText = `${update.category.name} - ${update.question.points} Punkte`
+            question_header.innerText = `${update.category.name} - ${update.question.points} Punkte`
             question.innerText = update.question.question;
             switch (update.question.type) {
                 case 'NORMAL':
                     updateBuzzerState(true);
-                    toDisplay.push(document.getElementById("buzzer"));
+                    toDisplay.push(buzzer);
                     break;
                 case 'TEXT':
                 case 'ESTIMATE':
-                    var text = document.getElementById("answer-textfield");
-                    text.value = '';
-                    toDisplay.push(text);
+                    answerText.value = '';
+                    toDisplay.push(answerText);
             }
 
 
@@ -182,7 +193,7 @@ const connect = () => {
         const gamemasterUpdate = (msg) => {
             var masterExists = JSON.parse(msg.body);
 
-            document.getElementById("gamemaster").hidden = masterExists;
+            gamemasterButton.hidden = masterExists;
         }
 
         stompClient.subscribe("/topic/gamemaster-update", gamemasterUpdate)
@@ -191,7 +202,6 @@ const connect = () => {
         stompClient.subscribe("/user/topic/answer", (msg) => {
             var answer = JSON.parse(msg.body);
 
-            var answers = document.getElementById("answers");
 
             var row = answers.insertRow(-1);
 
@@ -234,8 +244,8 @@ const connect = () => {
         stompClient.subscribe("/user/topic/gamemaster", (_) => {
             isGameMaster = true;
 
-            document.getElementById("player-area").hidden = true;
-            document.getElementById("gamemaster-area").hidden = false;
+            playerArea.hidden = true;
+            gamemasterArea.hidden = false;
         });
 
 
@@ -244,19 +254,13 @@ const connect = () => {
 }
 
 function highlightPlayer(name) {
-    var lobby = document.getElementById("lobby");
-
     Array.from(lobby.getElementsByTagName("tr")).forEach((v) => name && v.id === `player:${name}` ? v.className = "table-dark" : v.className = "");
 }
 
 function hideQuestion() {
-    var q = document.getElementById("question-wrapper");
-    var qat = document.getElementById("question-answer-tool-wrapper");
+    Array.from(questionWrapper.children).forEach((v) => v.style.display = 'none');
+    Array.from(questionAnswerToolWrapper.children).forEach((v) => v.style.display = 'none');
 
-    Array.from(q.children).forEach((v) => v.style.display = 'none');
-    Array.from(qat.children).forEach((v) => v.style.display = 'none');
-
-    var answers = document.getElementById("answers");
     answers.replaceChildren();
 }
 
@@ -269,7 +273,6 @@ function startGame() {
 }
 
 function updateBuzzerState(state) {
-    var buzzer = document.getElementById("buzzer");
     const newBuzzer = buzzer.cloneNode(true);
     if (state) {
         newBuzzer.addEventListener('click', submitAnswerFactory("buzzered"));
@@ -279,6 +282,7 @@ function updateBuzzerState(state) {
     }
 
     buzzer.parentNode.replaceChild(newBuzzer, buzzer);
+    buzzer = newBuzzer;
 }
 
 function submitAnswerFactory(answer) {
@@ -307,7 +311,6 @@ function becomeGameMaster() {
 // type and message are required to identify the type of message ('danger', 'success', 'warning', etc.) and the content of the message.
 // duration is the display duration of the notification and if omitted will default to 5 seconds.
 function showAlert(type, message, duration) {
-    const alertPlaceholder = document.getElementById('alert')
     const wrapper = document.createElement('div')
     wrapper.innerHTML = [
         `<div class="alert alert-${type} alert-dismissible" role="alert">`,
