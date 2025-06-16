@@ -131,7 +131,7 @@ public class GameService {
     public Player[] getLobby() {
         List<Player> sorted = new ArrayList<>(this.players);
         sorted.sort((a, b) -> b.getScore() - a.getScore());
-        return this.players.toArray(new Player[this.players.size()]);
+        return sorted.toArray(new Player[sorted.size()]);
     }
 
     public Category[] getBoard() {
