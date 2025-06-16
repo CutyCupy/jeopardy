@@ -323,14 +323,12 @@ function answerUpdate(msg) {
 }
 
 function makeVideoHTML(src) {
-    return `<div style="position:relative; width:100%; height:0px; padding-bottom:56.250%">
+    return src ? `<div style="position:relative; width:100%; height:0px; padding-bottom:56.250%">
                 <iframe allow="fullscreen;autoplay" allowfullscreen height="100%" 
                 src="https://streamable.com/e/${src}?autoplay=1" width="100%" 
                 style="border:none; width:100%; height:100%; position:absolute; left:0px; top:0px; overflow:hidden;">
                 </iframe>
-            </div>`
-
-
+            </div>` : null;
 }
 
 function debounce(fn, delay) {
@@ -367,8 +365,8 @@ function lockQuestion() {
     stompClient.send("/app/lock-question", {});
 }
 
-function revealQuestion() {
-    stompClient.send("/app/reveal-question", {});
+function revealAnswer() {
+    stompClient.send("/app/reveal-answer", {});
 }
 
 function skipQuestion() {

@@ -176,7 +176,7 @@ public class MessageController {
         this.notifications.lockQuestion();
     }
 
-    @MessageMapping("/reveal-question")
+    @MessageMapping("/reveal-answer")
     public void revealQuestion(UserPrincipal principal) {
         if (!principal.getID().equals(this.game.getMaster())) {
             return;
