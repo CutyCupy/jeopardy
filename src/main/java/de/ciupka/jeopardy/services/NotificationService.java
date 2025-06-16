@@ -1,5 +1,7 @@
 package de.ciupka.jeopardy.services;
 
+import java.util.HashMap;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ public class NotificationService {
     private static final String GAMEMASTER_UPDATE = "/topic/gamemaster-update";
     private static final String BUZZER_UPDATE = "/topic/buzzer-update";
     private static final String ANSWER = "/topic/answer";
+    private static final String LOCK_QUESTION = "/topic/lock-question";
 
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -69,11 +72,14 @@ public class NotificationService {
     }
 
     public void setBuzzer(String userId, boolean value) {
-        this.message(null, BUZZER_UPDATE, value);
+        this.message(userId, BUZZER_UPDATE, value);
     }
 
     public void sendAnswer(String userId, Answer answer) {
         this.message(userId, ANSWER, answer);
-        ;
+    }
+
+    public void lockQuestion() {
+        this.message(null, LOCK_QUESTION, new HashMap<>());
     }
 }

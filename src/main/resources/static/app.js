@@ -12,6 +12,8 @@ const question_data = document.getElementById("question-data");
 
 var buzzer = document.getElementById("buzzer");
 const answerText = document.getElementById("answer-textfield");
+const answerNumber = document.getElementById("answer-numberfield");
+const answer = document.getElementById("answer");
 const answers = document.getElementById("answers");
 
 const playerArea = document.getElementById("player-area")
@@ -20,7 +22,11 @@ const gamemasterArea = document.getElementById("gamemaster-area")
 const questionWrapper = document.getElementById("question-wrapper");
 const questionAnswerToolWrapper = document.getElementById("question-answer-tool-wrapper");
 
-const alertPlaceholder = document.getElementById('alert')
+const alertPlaceholder = document.getElementById('alert');
+
+
+answerText.addEventListener('input', debounce((args) => submitAnswerFactory(args[0].srcElement.value)(), 333))
+answerNumber.addEventListener('input', debounce((args) => submitAnswerFactory(args[0].srcElement.value)(), 333))
 
 const connect = () => {
     // ngrok http --host-header=localhost 8080
@@ -32,7 +38,7 @@ const connect = () => {
 
         // subscribes to user specific messages about lobby join information. Displays a message when joined successfully.
         stompClient.subscribe("/user/topic/join", (msg) => {
-            Array.from(joinButtons.children).forEach((v) => v.hidden = true);
+            Array.from(joinButtons.children).forEach((v) => v.style.display = 'none');
 
             showAlert('success', `${JSON.parse(msg.body) ? 'Herzlich Willkommen' : 'Willkommen zurück'}! Jeden Moment sollte das Spiel starten!`);
         });
@@ -47,9 +53,15 @@ const connect = () => {
             }
 
             for (var i = 0; i < q.length; i++) {
+                const player = q[i];
+
                 var row = lobby.insertRow(-1);
 
-                row.id = `player:${q[i].name}`
+                if (player.disconnected) {
+                    row.classList.add("table-danger")
+                }
+
+                row.id = `player:${player.name}`
 
                 var place = document.createElement("th");
                 place.scope = "row"
@@ -59,10 +71,10 @@ const connect = () => {
                 row.appendChild(place);
 
                 var name = row.insertCell(1);
-                name.innerText = q[i].name;
+                name.innerText = player.name;
 
                 var score = row.insertCell(2);
-                score.innerText = q[i].score;
+                score.innerText = player.score;
                 score.classList.add("text-end");
             }
 
@@ -75,6 +87,7 @@ const connect = () => {
 
             highlightPlayer(update.player?.name);
 
+            const selectedQuestion = update.selectedQuestion?.identifier;
 
             const createQuestionRow = (qIdx) => {
                 const row = document.createElement("div");
@@ -86,9 +99,7 @@ const connect = () => {
                     const wrapper = document.createElement("div");
                     wrapper.classList.add("col", "text-center", "d-grid", "my-1");
 
-                    isChosen = (update.active && update.active.question == qIdx && update.active.category == cIdx);
-
-                    console.log(JSON.stringify(update.active))
+                    isChosen = (selectedQuestion && selectedQuestion.question == qIdx && selectedQuestion.category == cIdx);
 
                     const button = document.createElement("button");
                     var buttonStyle = "btn-outline-primary";
@@ -96,15 +107,15 @@ const connect = () => {
                         buttonStyle = "btn-success";
                     } else if (isChosen) {
                         buttonStyle = "btn-primary";
-                    } else if (update.active) {
+                    } else if (selectedQuestion) {
                         buttonStyle = "btn-outline-secondary"
                     }
-                    button.disabled = question.answered || (update.active && !isChosen);
+                    button.disabled = question.answered || (selectedQuestion && !isChosen);
                     button.classList.add("btn", buttonStyle, "align-self-md-center");
 
                     button.innerText = question.points;
 
-                    if (!update.active) {
+                    if (!selectedQuestion) {
                         button.addEventListener('click', callbackClosure(cIdx, (x) =>
                             stompClient.send(
                                 "/app/question", {},
@@ -163,7 +174,7 @@ const connect = () => {
             }
 
             toDisplay = [
-                question_header, question
+                question_header, question, answer
             ];
 
             question_header.innerText = `${update.category.name} - ${update.question.points} Punkte`
@@ -174,17 +185,37 @@ const connect = () => {
                     toDisplay.push(buzzer);
                     break;
                 case 'TEXT':
-                case 'ESTIMATE':
                     answerText.value = '';
                     toDisplay.push(answerText);
+                    break;
+                case 'ESTIMATE':
+                    answerNumber.value = '';
+                    toDisplay.push(answerNumber);
+                    break;
             }
 
+            answer.innerText = update.question.answer;
 
-            toDisplay.forEach((v) => v.style.display = null)
+            toDisplay.forEach((v) => {
+                v.style.display = null;
+                v.readOnly = false;
+            })
         })
 
 
+        stompClient.subscribe("/topic/lock-question", (msg) => {
+            updateBuzzerState(false);
+
+            Array.from(questionAnswerToolWrapper.children).forEach((v) => v.readOnly = true);
+        });
+
         stompClient.subscribe("/topic/buzzer-update", (msg) => {
+            var state = JSON.parse(msg.body);
+
+            updateBuzzerState(state);
+        });
+
+        stompClient.subscribe("/user/topic/buzzer-update", (msg) => {
             var state = JSON.parse(msg.body);
 
             updateBuzzerState(state);
@@ -202,13 +233,19 @@ const connect = () => {
         stompClient.subscribe("/user/topic/answer", (msg) => {
             var answer = JSON.parse(msg.body);
 
-
+            const id = `answer:${answer.player.name}`;
+            var answerCell = document.getElementById(id);
+            if (answerCell) {
+                answerCell.innerText = answer.answer;
+                return;
+            }
             var row = answers.insertRow(-1);
 
             var nameCell = row.insertCell(0);
             nameCell.innerText = answer.player.name;
 
-            var answerCell = row.insertCell(1);
+            answerCell = row.insertCell(1);
+            answerCell.id = id;
             answerCell.innerText = answer.answer;
 
             var judgeCell = row.insertCell(2);
@@ -253,8 +290,20 @@ const connect = () => {
     });
 }
 
+function debounce(fn, delay) {
+    let timeout;
+    return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn(args), delay);
+    };
+}
+
 function highlightPlayer(name) {
-    Array.from(lobby.getElementsByTagName("tr")).forEach((v) => name && v.id === `player:${name}` ? v.className = "table-dark" : v.className = "");
+    Array.from(lobby.getElementsByTagName("tr")).forEach((v) => {
+        if (name && v.id == `player:${name}`) {
+            v.classList.add("table-primary");
+        }
+    });
 }
 
 function hideQuestion() {
@@ -262,6 +311,10 @@ function hideQuestion() {
     Array.from(questionAnswerToolWrapper.children).forEach((v) => v.style.display = 'none');
 
     answers.replaceChildren();
+}
+
+function lockQuestion() {
+    stompClient.send("/app/lock-question", {});
 }
 
 function skipQuestion() {
@@ -275,7 +328,7 @@ function startGame() {
 function updateBuzzerState(state) {
     const newBuzzer = buzzer.cloneNode(true);
     if (state) {
-        newBuzzer.addEventListener('click', submitAnswerFactory("buzzered"));
+        newBuzzer.addEventListener('click', submitAnswerFactory(""));
         newBuzzer.src = "./img/enabutton.png"
     } else {
         newBuzzer.src = "./img/disbutton.png"
@@ -286,7 +339,7 @@ function updateBuzzerState(state) {
 }
 
 function submitAnswerFactory(answer) {
-    return function () { stompClient.send("/app/submit-answer", {}, answer) };
+    return function () { stompClient.send("/app/submit-answer", {}, JSON.stringify({ answer })) };
 }
 
 function callbackClosure(i, callback) {

@@ -12,4 +12,9 @@ public class Question extends AbstractQuestion {
         return false;
     }
 
+    @Override
+    public boolean allowMultipleAnswer() {
+        return false;
+    }
+
 }

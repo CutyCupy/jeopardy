@@ -89,7 +89,7 @@ public class MessageController {
     }
 
     @MessageMapping("/submit-answer")
-    public boolean submitAnswer(String answer, Principal principal) {
+    public boolean submitAnswer(Answer answer, Principal principal) {
         UserPrincipal up = (UserPrincipal) principal;
         this.notifications.setBuzzer(up.getName(), false);
 
@@ -97,7 +97,7 @@ public class MessageController {
 
         UUID master = this.game.getMaster();
 
-        this.notifications.sendAnswer(master.toString(), new Answer(answering, answer));
+        this.notifications.sendAnswer(master.toString(), new Answer(answering, answer.getAnswer()));
         return false;
     }
 
@@ -110,9 +110,13 @@ public class MessageController {
 
         this.game.answerQuestion(this.game.getPlayerByName(answer.getPlayerName()), !answer.isCorrect());
 
+        if (!this.game.getSelectedQuestion().getQuestion().allowMultipleAnswer() && answer.isCorrect()) {
+            this.game.closeQuestion();
+            this.notifications.sendQuestionUpdate(null);
+        }
+
         this.notifications.sendLobbyUpdate(null);
         this.notifications.sendBoardUpdate(null);
-
     }
 
     @MessageMapping("/question")
@@ -158,4 +162,16 @@ public class MessageController {
         this.notifications.sendLobbyUpdate(null);
         this.notifications.sendBoardUpdate(null);
     }
+
+    @MessageMapping("/lock-question")
+    public void lockQuestion(Principal principal) {
+        UserPrincipal up = (UserPrincipal) principal;
+        if (!up.getID().equals(this.game.getMaster())) {
+            return;
+        }
+
+        this.notifications.lockQuestion();
+    }
+
+
 }

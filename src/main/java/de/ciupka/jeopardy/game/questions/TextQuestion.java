@@ -6,4 +6,14 @@ public class TextQuestion extends AbstractQuestion {
         super(question, points, answer, Type.TEXT);
     }
 
+    @Override
+    public boolean allowWrongAnswer() {
+        return true;
+    }
+
+    @Override
+    public boolean allowMultipleAnswer() {
+        return false;
+    }
+
 }

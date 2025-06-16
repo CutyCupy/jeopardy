@@ -18,10 +18,6 @@ public abstract class AbstractQuestion {
         return points;
     }
 
-    public boolean allowWrongAnswer() {
-        return true;
-    }
-
     public String getQuestion() {
         return question;
     }
@@ -41,4 +37,7 @@ public abstract class AbstractQuestion {
     public Type getType() {
         return this.type;
     }
+
+    public abstract boolean allowWrongAnswer();
+    public abstract boolean allowMultipleAnswer();
 }

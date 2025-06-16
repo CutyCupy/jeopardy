@@ -24,6 +24,7 @@ public class SelectedQuestion {
 
     public SelectedQuestion(QuestionIdentifier id, Category cat, AbstractQuestion qst,
             Player selectedBy) {
+        this.identifier = id;
         this.category = cat;
         this.question = qst;
         this.selectedBy = selectedBy;

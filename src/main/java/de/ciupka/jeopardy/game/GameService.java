@@ -129,7 +129,7 @@ public class GameService {
 
     public Player[] getLobby() {
         List<Player> sorted = new ArrayList<>(this.players);
-        sorted.sort((a, b) -> a.getScore() - b.getScore());
+        sorted.sort((a, b) -> b.getScore() - a.getScore());
         return this.players.toArray(new Player[this.players.size()]);
     }
 
@@ -232,9 +232,24 @@ public class GameService {
 
     public void start() {
         if (this.isActive()) {
-            return;
+            return;     
         }
 
         this.currentPlayerIdx = (int) (this.players.size() * Math.random());
+    }
+
+    public boolean onDisconnect(UUID id) {
+        Optional<Player> player = players.stream().filter((p) -> p.getUuid().equals(id)).findAny();
+        if (player.isPresent()) {
+            player.get().disconnect();
+            return true;
+        }
+
+        if(id.equals(master)) {
+            setMaster(null);
+            return true;
+        }
+        
+        return false;
     }
 }

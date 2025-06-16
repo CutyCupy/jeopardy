@@ -4,13 +4,16 @@ import java.util.UUID;
 
 /**
  * This class represents a player that is participating in the game.
- * The main purpose of this class is to keep track of the name and score of any given user.
+ * The main purpose of this class is to keep track of the name and score of any
+ * given user.
+ * 
  * @author Alexander Ciupka
  */
 public class Player {
 
     private String name;
     private UUID uuid;
+    private boolean disconnected;
     private int score;
 
     public Player(UUID uuid, String name) {
@@ -28,6 +31,15 @@ public class Player {
 
     public void setUuid(UUID uuid) {
         this.uuid = uuid;
+        disconnected = false;
+    }
+
+    public boolean isDisconnected() {
+        return disconnected;
+    }
+
+    public void disconnect() {
+        disconnected = true;
     }
 
     public int getScore() {

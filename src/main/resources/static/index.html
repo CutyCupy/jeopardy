@@ -42,7 +42,7 @@
                 </div>
             </div>
         </div>
-        <div class="row" id="player-area">
+        <div class="row">
             <div class="col col-9">
                 <div id="question-wrapper">
                     <h3 id="question-header"></h3>
@@ -50,7 +50,7 @@
                     <div id="question-data"></div>
                 </div>
             </div>
-            <div class="col">
+            <div class="col" id="player-area">
                 <div id="question-answer-tool-wrapper">
                     <img src="./img/disbutton.png" class="img-fluid ms-auto" id="buzzer" style="border-radius: 100%">
                     <textarea class="form-control" id="answer-textfield" placeholder="Antwort..."></textarea>
@@ -61,11 +61,7 @@
 
         <div class="row" id="gamemaster-area" hidden="false">
             <div class="col">
-                <div id="question-wrapper">
-                    <h3 id="question-header"></h3>
-                    <span id="question"></span>
-                    <div id="question-data"></div>
-                </div>
+                <span id="answer"></span>
             </div>
             <div class="col">
                 <button class="btn btn-success" style="width: 100%;" onclick="startGame()">Spiel starten</button>
@@ -80,7 +76,9 @@
                     <tbody id="answers">
                     </tbody>
                 </table>
-                <button class="btn btn-danger" style="width: 100%;" onclick="skipQuestion()">Frage
+                <button class="btn btn-warning my-1" style="width: 100%;" onclick="lockQuestion()">Frage
+                    einfrieren</button>
+                <button class="btn btn-danger my-1" style="width: 100%;" onclick="skipQuestion()">Frage
                     überspringen</button>
             </div>
         </div>

@@ -12,4 +12,14 @@ public class VideoQuestion extends AbstractQuestion {
         return this.path;
     }
 
+    @Override
+    public boolean allowMultipleAnswer() {
+        return true;
+    }
+
+    @Override
+    public boolean allowWrongAnswer() {
+        return false;
+    }
+
 }
