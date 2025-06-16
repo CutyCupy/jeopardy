@@ -39,5 +39,6 @@ public abstract class AbstractQuestion {
     }
 
     public abstract boolean allowWrongAnswer();
+
     public abstract boolean allowMultipleAnswer();
 }
