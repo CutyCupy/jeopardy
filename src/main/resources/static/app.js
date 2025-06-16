@@ -24,6 +24,8 @@ const questionAnswerToolWrapper = document.getElementById("question-answer-tool-
 
 const alertPlaceholder = document.getElementById('alert');
 
+const buzzerAudio = document.getElementById("buzzer-audio")
+
 
 answerText.addEventListener('input', debounce((args) => submitAnswerFactory(args[0].srcElement.value)(), 333))
 answerNumber.addEventListener('input', debounce((args) => submitAnswerFactory(args[0].srcElement.value)(), 333))
@@ -44,44 +46,8 @@ const connect = () => {
         });
 
         // subscribes to lobby update messages and rebuilds the lobby table according to the given informations about the lobby.
-        stompClient.subscribe("/topic/lobby-update", (msg) => {
-            const q = JSON.parse(msg.body);
-
-
-            const rowCount = lobby.rows.length;
-            for (var i = 0; i < rowCount; i++) {
-                lobby.deleteRow(0);
-            }
-
-            for (var i = 0; i < q.length; i++) {
-                const player = q[i];
-
-                var row = lobby.insertRow(-1);
-
-                if (player.disconnected) {
-                    row.classList.add("table-danger")
-                }
-
-                row.id = `player:${player.name}`
-
-                var place = document.createElement("th");
-                place.scope = "row"
-                place.classList.add("text-end")
-                place.innerText = i + 1;
-
-                row.appendChild(place);
-
-                var name = row.insertCell(1);
-                name.innerText = player.name;
-
-                var score = row.insertCell(2);
-                score.innerText = player.score;
-                score.classList.add("text-end");
-            }
-
-            // TODO: Send more information for a detailed update analysis and more detailed notification to the players.
-            showAlert('info', `Die Lobby wurde geupdated!`);
-        });
+        stompClient.subscribe("/topic/lobby-update", onLobbyUpdate);
+        stompClient.subscribe("/user/topic/lobby-update", onLobbyUpdate);
 
         const boardUpdate = (msg) => {
             const update = JSON.parse(msg.body);
@@ -168,47 +134,8 @@ const connect = () => {
 
 
 
-        stompClient.subscribe("/topic/question-update", (msg) => {
-            hideQuestion();
-            var update = JSON.parse(msg.body);
-            if (!update.question) {
-                return;
-            }
-
-            toDisplay = [
-                question_header, question
-            ];
-
-            question_header.innerText = `${update.category.name} - ${update.question.points} Punkte`
-            question.innerText = update.question.question;
-            switch (update.question.type) {
-                case 'NORMAL':
-                    updateBuzzerState(true);
-                    toDisplay.push(buzzer);
-                    break;
-                case 'TEXT':
-                    answerText.value = '';
-                    toDisplay.push(answerText);
-                    break;
-                case 'ESTIMATE':
-                    answerNumber.value = '';
-                    toDisplay.push(answerNumber);
-                    break;
-                case 'VIDEO':
-                    answerText.value = '';
-                    toDisplay.push(answerText);
-                    if (!isGameMaster) {
-                        question_data.innerHTML = makeVideoHTML(update.question.path);
-                    }
-                    toDisplay.push(question_data);
-                    break;
-            }
-
-            toDisplay.forEach((v) => {
-                v.style.display = null;
-                v.readOnly = false;
-            })
-        });
+        stompClient.subscribe("/topic/question-update", onQuestionUpdate);
+        stompClient.subscribe("/user/topic/question-update", onQuestionUpdate);
 
         stompClient.subscribe("/user/topic/answer-update", answerUpdate)
         stompClient.subscribe("/topic/answer-update", answerUpdate)
@@ -297,9 +224,94 @@ const connect = () => {
             gamemasterArea.style.display = null;
         });
 
+        stompClient.subscribe("/topic/on-buzzer", (_) => {
+            buzzerAudio.play();
+        })
+
 
         stompClient.send('/app/on-connect');
     });
+}
+
+function onLobbyUpdate(msg) {
+    const q = JSON.parse(msg.body);
+
+
+    const rowCount = lobby.rows.length;
+    for (var i = 0; i < rowCount; i++) {
+        lobby.deleteRow(0);
+    }
+
+    for (var i = 0; i < q.length; i++) {
+        const player = q[i];
+
+        var row = lobby.insertRow(-1);
+
+        if (player.disconnected) {
+            row.classList.add("table-danger")
+        }
+
+        row.id = `player:${player.name}`
+
+        var place = document.createElement("th");
+        place.scope = "row"
+        place.classList.add("text-end")
+        place.innerText = i + 1;
+
+        row.appendChild(place);
+
+        var name = row.insertCell(1);
+        name.innerText = player.name;
+
+        var score = row.insertCell(2);
+        score.innerText = player.score;
+        score.classList.add("text-end");
+    }
+
+    // TODO: Send more information for a detailed update analysis and more detailed notification to the players.
+    showAlert('info', `Die Lobby wurde geupdated!`);
+}
+
+function onQuestionUpdate(msg) {
+    hideQuestion();
+    var update = JSON.parse(msg.body);
+    if (!update.question) {
+        return;
+    }
+
+    toDisplay = [
+        question_header, question
+    ];
+
+    question_header.innerText = `${update.category.name} - ${update.question.points} Punkte`
+    question.innerText = update.question.question;
+    switch (update.question.type) {
+        case 'NORMAL':
+            updateBuzzerState(true);
+            toDisplay.push(buzzer);
+            break;
+        case 'TEXT':
+            answerText.value = '';
+            toDisplay.push(answerText);
+            break;
+        case 'ESTIMATE':
+            answerNumber.value = '';
+            toDisplay.push(answerNumber);
+            break;
+        case 'VIDEO':
+            answerText.value = '';
+            toDisplay.push(answerText);
+            if (!isGameMaster) {
+                question_data.innerHTML = makeVideoHTML(update.question.path);
+            }
+            toDisplay.push(question_data);
+            break;
+    }
+
+    toDisplay.forEach((v) => {
+        v.style.display = null;
+        v.readOnly = false;
+    })
 }
 
 function answerUpdate(msg) {

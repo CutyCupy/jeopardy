@@ -14,6 +14,7 @@ import de.ciupka.jeopardy.controller.messages.AnswerEvaluation;
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
 import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.Player;
+import de.ciupka.jeopardy.game.questions.Type;
 import de.ciupka.jeopardy.services.NotificationService;
 
 /**
@@ -36,11 +37,6 @@ public class MessageController {
 
         this.notifications.sendGameMasterUpdate(up.getName());
         this.notifications.sendLobbyUpdate(up.getName());
-
-        if (this.game.isActive()) {
-            this.notifications.sendBoardUpdate(up.getName());
-            this.notifications.sendQuestionUpdate(up.getName());
-        }
     }
 
     /**
@@ -68,8 +64,9 @@ public class MessageController {
          * with extra data based on reasoning.
          */
         notifications.sendLobbyUpdate(null);
-        if (this.game.isActive()) {
+        if (game.isActive()) {
             notifications.sendBoardUpdate(up.getName());
+            notifications.sendQuestionUpdate(up.getName());
         }
 
         return added;
@@ -91,6 +88,10 @@ public class MessageController {
     @MessageMapping("/submit-answer")
     public boolean submitAnswer(Answer answer, Principal principal) {
         UserPrincipal up = (UserPrincipal) principal;
+        // TODO: This can be checked better
+        if (this.game.getSelectedQuestion().getQuestion().getType().equals(Type.NORMAL)) {
+            this.notifications.sendOnBuzzer();
+        }
         this.notifications.setBuzzer(up.getName(), false);
 
         Player answering = this.game.getPlayerByID(up.getID());

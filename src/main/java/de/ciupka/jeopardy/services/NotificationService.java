@@ -26,6 +26,7 @@ public class NotificationService {
     private static final String ANSWER_UPDATE = "/topic/answer-update";
     private static final String GAMEMASTER_UPDATE = "/topic/gamemaster-update";
     private static final String BUZZER_UPDATE = "/topic/buzzer-update";
+    private static final String ON_BUZZER = "/topic/on-buzzer";
     private static final String ANSWER = "/topic/answer";
     private static final String LOCK_QUESTION = "/topic/lock-question";
 
@@ -83,6 +84,10 @@ public class NotificationService {
 
     public void setBuzzer(String userId, boolean value) {
         this.message(userId, BUZZER_UPDATE, value);
+    }
+
+    public void sendOnBuzzer() {
+        this.message(null, ON_BUZZER, new HashMap<>());
     }
 
     public void sendAnswer(String userId, Answer answer) {
