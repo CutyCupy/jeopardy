@@ -23,6 +23,7 @@ public class NotificationService {
     private static final String LOBBY_UPDATE = "/topic/lobby-update";
     private static final String BOARD_UPDATE = "/topic/board-update";
     private static final String QUESTION_UPDATE = "/topic/question-update";
+    private static final String ANSWER_UPDATE = "/topic/answer-update";
     private static final String GAMEMASTER_UPDATE = "/topic/gamemaster-update";
     private static final String BUZZER_UPDATE = "/topic/buzzer-update";
     private static final String ANSWER = "/topic/answer";
@@ -65,6 +66,15 @@ public class NotificationService {
             return;
         }
         this.message(userId, QUESTION_UPDATE, question);
+    }
+
+    public void sendAnswerUpdate(final String userId) {
+        SelectedQuestion question = this.game.getSelectedQuestion();
+        if (question == null) {
+            this.message(userId, QUESTION_UPDATE, new SelectedQuestion());
+            return;
+        }
+        this.message(userId, ANSWER_UPDATE, question);
     }
 
     public void sendGameMasterUpdate(final String userId) {

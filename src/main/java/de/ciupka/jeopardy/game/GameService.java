@@ -13,6 +13,7 @@ import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 import de.ciupka.jeopardy.game.questions.EstimateQuestion;
 import de.ciupka.jeopardy.game.questions.Question;
 import de.ciupka.jeopardy.game.questions.TextQuestion;
+import de.ciupka.jeopardy.game.questions.VideoQuestion;
 
 @Service
 public class GameService {
@@ -37,8 +38,8 @@ public class GameService {
                                 "Welcher deutsche Bundeskanzler leitete die Wiedervereinigung 1990?",
                                 300,
                                 "Helmut Kohl"),
-                        new Question("Wie lautet der chemische Name für Kochsalz?", 600,
-                                "Natriumchlorid"),
+                        new VideoQuestion("Was passiert als nächstes?", 600,
+                                "hf098o", "i21afv"),
                         new Question("Welches Jahr markierte das Ende des Römischen Reiches im Westen?",
                                 1000,
                                 "476 n. Chr.")),
@@ -232,7 +233,7 @@ public class GameService {
 
     public void start() {
         if (this.isActive()) {
-            return;     
+            return;
         }
 
         this.currentPlayerIdx = (int) (this.players.size() * Math.random());
@@ -245,11 +246,11 @@ public class GameService {
             return true;
         }
 
-        if(id.equals(master)) {
+        if (id.equals(master)) {
             setMaster(null);
             return true;
         }
-        
+
         return false;
     }
 }

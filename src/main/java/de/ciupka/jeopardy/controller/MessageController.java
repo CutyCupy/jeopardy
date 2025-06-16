@@ -135,6 +135,9 @@ public class MessageController {
 
         this.notifications.sendBoardUpdate(null);
         this.notifications.sendQuestionUpdate(null);
+
+        this.notifications.sendAnswerUpdate(this.game.getMaster().toString());
+
         return null;
     }
 
@@ -173,5 +176,13 @@ public class MessageController {
         this.notifications.lockQuestion();
     }
 
+    @MessageMapping("/reveal-question")
+    public void revealQuestion(UserPrincipal principal) {
+        if (!principal.getID().equals(this.game.getMaster())) {
+            return;
+        }
+
+        this.notifications.sendAnswerUpdate(null);
+    }
 
 }

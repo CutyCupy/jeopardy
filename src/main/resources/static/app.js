@@ -38,7 +38,7 @@ const connect = () => {
 
         // subscribes to user specific messages about lobby join information. Displays a message when joined successfully.
         stompClient.subscribe("/user/topic/join", (msg) => {
-            Array.from(joinButtons.children).forEach((v) => v.style.display = 'none');
+            hideJoinButtons();
 
             showAlert('success', `${JSON.parse(msg.body) ? 'Herzlich Willkommen' : 'Willkommen zurück'}! Jeden Moment sollte das Spiel starten!`);
         });
@@ -46,6 +46,7 @@ const connect = () => {
         // subscribes to lobby update messages and rebuilds the lobby table according to the given informations about the lobby.
         stompClient.subscribe("/topic/lobby-update", (msg) => {
             const q = JSON.parse(msg.body);
+
 
             const rowCount = lobby.rows.length;
             for (var i = 0; i < rowCount; i++) {
@@ -84,6 +85,7 @@ const connect = () => {
 
         const boardUpdate = (msg) => {
             const update = JSON.parse(msg.body);
+            console.log(update);
 
             highlightPlayer(update.player?.name);
 
@@ -174,7 +176,7 @@ const connect = () => {
             }
 
             toDisplay = [
-                question_header, question, answer
+                question_header, question
             ];
 
             question_header.innerText = `${update.category.name} - ${update.question.points} Punkte`
@@ -192,15 +194,24 @@ const connect = () => {
                     answerNumber.value = '';
                     toDisplay.push(answerNumber);
                     break;
+                case 'VIDEO':
+                    answerText.value = '';
+                    toDisplay.push(answerText);
+                    if (!isGameMaster) {
+                        question_data.innerHTML = makeVideoHTML(update.question.path);
+                    }
+                    toDisplay.push(question_data);
+                    break;
             }
-
-            answer.innerText = update.question.answer;
 
             toDisplay.forEach((v) => {
                 v.style.display = null;
                 v.readOnly = false;
             })
-        })
+        });
+
+        stompClient.subscribe("/user/topic/answer-update", answerUpdate)
+        stompClient.subscribe("/topic/answer-update", answerUpdate)
 
 
         stompClient.subscribe("/topic/lock-question", (msg) => {
@@ -224,7 +235,7 @@ const connect = () => {
         const gamemasterUpdate = (msg) => {
             var masterExists = JSON.parse(msg.body);
 
-            gamemasterButton.hidden = masterExists;
+            gamemasterButton.style.display = masterExists ? 'none' : null;
         }
 
         stompClient.subscribe("/topic/gamemaster-update", gamemasterUpdate)
@@ -281,13 +292,45 @@ const connect = () => {
         stompClient.subscribe("/user/topic/gamemaster", (_) => {
             isGameMaster = true;
 
-            playerArea.hidden = true;
-            gamemasterArea.hidden = false;
+            hideJoinButtons();
+            playerArea.style.display = 'none';
+            gamemasterArea.style.display = null;
         });
 
 
         stompClient.send('/app/on-connect');
     });
+}
+
+function answerUpdate(msg) {
+    var update = JSON.parse(msg.body);
+    switch (update.question.type) {
+        case 'NORMAL':
+        case 'TEXT':
+        case 'ESTIMATE':
+            const span = document.createElement("span");
+            span.innerText = update.question.answer;
+
+            answer.replaceChildren(span);
+            break;
+        case 'VIDEO':
+            question_data.innerHTML = '';
+            answer.innerHTML = makeVideoHTML(update.question.answer);
+            break;
+    }
+
+    answer.style.display = null;
+}
+
+function makeVideoHTML(src) {
+    return `<div style="position:relative; width:100%; height:0px; padding-bottom:56.250%">
+                <iframe allow="fullscreen;autoplay" allowfullscreen height="100%" 
+                src="https://streamable.com/e/${src}?autoplay=1" width="100%" 
+                style="border:none; width:100%; height:100%; position:absolute; left:0px; top:0px; overflow:hidden;">
+                </iframe>
+            </div>`
+
+
 }
 
 function debounce(fn, delay) {
@@ -307,14 +350,25 @@ function highlightPlayer(name) {
 }
 
 function hideQuestion() {
-    Array.from(questionWrapper.children).forEach((v) => v.style.display = 'none');
+    Array.from(questionWrapper.children).forEach((v) => {
+        v.replaceChildren();
+        v.innerText = '';
+    });
     Array.from(questionAnswerToolWrapper.children).forEach((v) => v.style.display = 'none');
 
     answers.replaceChildren();
 }
 
+function hideJoinButtons() {
+    Array.from(joinButtons.children).forEach((v) => v.style.display = 'none');
+}
+
 function lockQuestion() {
     stompClient.send("/app/lock-question", {});
+}
+
+function revealQuestion() {
+    stompClient.send("/app/reveal-question", {});
 }
 
 function skipQuestion() {
