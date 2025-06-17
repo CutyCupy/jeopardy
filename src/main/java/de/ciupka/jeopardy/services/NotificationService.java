@@ -90,7 +90,7 @@ public class NotificationService {
         this.message(null, ON_BUZZER, new HashMap<>());
     }
 
-    public void sendAnswer(String userId, Answer answer) {
+    public void sendAnswer(String userId, Answer<?> answer) {
         this.message(userId, ANSWER, answer);
     }
 

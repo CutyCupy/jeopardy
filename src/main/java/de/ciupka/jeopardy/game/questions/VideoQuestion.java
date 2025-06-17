@@ -1,6 +1,8 @@
 package de.ciupka.jeopardy.game.questions;
 
-public class VideoQuestion extends AbstractQuestion {
+import com.fasterxml.jackson.databind.JsonNode;
+
+public class VideoQuestion extends AbstractQuestion<String> {
     private String path;
 
     public VideoQuestion(String question, int points, String answer, String path) {
@@ -22,4 +24,8 @@ public class VideoQuestion extends AbstractQuestion {
         return false;
     }
 
+    @Override
+    public String parseAnswer(JsonNode node) {
+        return node.asText();
+    }
 }

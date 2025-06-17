@@ -1,13 +1,17 @@
 package de.ciupka.jeopardy.game.questions;
 
-public abstract class AbstractQuestion {
+import com.fasterxml.jackson.databind.JsonNode;
+
+import de.ciupka.jeopardy.game.Player;
+
+public abstract class AbstractQuestion<T> {
     private String question;
     private int points;
-    private String answer;
+    private T answer;
     private Type type;
     private boolean answered;
 
-    public AbstractQuestion(String question, int points, String answer, Type type) {
+    public AbstractQuestion(String question, int points, T answer, Type type) {
         this.question = question;
         this.points = points;
         this.answer = answer;
@@ -22,7 +26,7 @@ public abstract class AbstractQuestion {
         return question;
     }
 
-    public String getAnswer() {
+    public T getAnswer() {
         return answer;
     }
 
@@ -38,7 +42,17 @@ public abstract class AbstractQuestion {
         return this.type;
     }
 
+    protected void giveOrTakePoints(Player p, boolean wrong) {
+        int factor = 1;
+        if (wrong) {
+            factor = allowWrongAnswer() ? 0 : -1;
+        }
+        p.updateScore(factor * getPoints());
+    }
+
     public abstract boolean allowWrongAnswer();
 
     public abstract boolean allowMultipleAnswer();
+
+    public abstract T parseAnswer(JsonNode node);
 }

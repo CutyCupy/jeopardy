@@ -5,9 +5,9 @@ import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 public class Category {
 
     private String name;
-    private AbstractQuestion[] questions;
+    private AbstractQuestion<?>[] questions;
 
-    public Category(String name, AbstractQuestion... questions) {
+    public Category(String name, AbstractQuestion<?>... questions) {
         this.name = name;
         this.questions = questions;
     }
@@ -16,11 +16,11 @@ public class Category {
         return name;
     }
 
-    public AbstractQuestion[] getQuestions() {
+    public AbstractQuestion<?>[] getQuestions() {
         return questions;
     }
 
-    public AbstractQuestion getQuestion(int idx) {
+    public AbstractQuestion<?> getQuestion(int idx) {
         if (idx < 0 || idx >= this.questions.length) {
             return null; // Maybe throw an Exception instead?
         }

@@ -12,8 +12,10 @@ import de.ciupka.jeopardy.configs.UserPrincipal;
 import de.ciupka.jeopardy.controller.messages.Answer;
 import de.ciupka.jeopardy.controller.messages.AnswerEvaluation;
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
+import de.ciupka.jeopardy.controller.messages.SendAnswer;
 import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.Player;
+import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 import de.ciupka.jeopardy.game.questions.Type;
 import de.ciupka.jeopardy.services.NotificationService;
 
@@ -86,10 +88,12 @@ public class MessageController {
     }
 
     @MessageMapping("/submit-answer")
-    public boolean submitAnswer(Answer answer, Principal principal) {
+    public boolean submitAnswer(SendAnswer answer, Principal principal) {
         UserPrincipal up = (UserPrincipal) principal;
+
+        AbstractQuestion<?> question = this.game.getSelectedQuestion().getQuestion();
         // TODO: This can be checked better
-        if (this.game.getSelectedQuestion().getQuestion().getType().equals(Type.NORMAL)) {
+        if (question.getType().equals(Type.NORMAL)) {
             this.notifications.sendOnBuzzer();
         }
         this.notifications.setBuzzer(up.getName(), false);
@@ -98,7 +102,7 @@ public class MessageController {
 
         UUID master = this.game.getMaster();
 
-        this.notifications.sendAnswer(master.toString(), new Answer(answering, answer.getAnswer()));
+        this.notifications.sendAnswer(master.toString(), new Answer<>(answering, question.parseAnswer(answer.getAnswer())));
         return false;
     }
 

@@ -12,6 +12,7 @@ import de.ciupka.jeopardy.controller.messages.SelectedQuestion;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 import de.ciupka.jeopardy.game.questions.EstimateQuestion;
 import de.ciupka.jeopardy.game.questions.Question;
+import de.ciupka.jeopardy.game.questions.SortQuestion;
 import de.ciupka.jeopardy.game.questions.TextQuestion;
 import de.ciupka.jeopardy.game.questions.VideoQuestion;
 
@@ -29,7 +30,7 @@ public class GameService {
         this.players = new ArrayList<>();
 
         this.board = new Category[] {
-                new Category("Allgemeinwissen",
+                new Category("Twitch",
                         new EstimateQuestion("Wie viele Kontinente gibt es auf der Erde?", 100,
                                 7),
                         new Question("Welcher Planet ist der dritte von der Sonne?", 200,
@@ -40,11 +41,13 @@ public class GameService {
                                 "Helmut Kohl"),
                         new VideoQuestion("Was passiert als nächstes?", 600,
                                 "hf098o", "i21afv"),
-                        new Question("Welches Jahr markierte das Ende des Römischen Reiches im Westen?",
+                        new SortQuestion("Sortiere die Zahlen aufsteigend!",
                                 1000,
-                                "476 n. Chr.")),
+                                new String[]{
+                                    "1", "2", "3", "4", "5", "6", "7", "8",
+                                })),
 
-                new Category("Filme & Serien",
+                new Category("Valorant",
                         new Question("Wer spielt Harry Potter in den Filmen?", 100,
                                 "Daniel Radcliffe"),
                         new Question("Wie heißt der fiktive Kontinent in Game of Thrones?", 200,
@@ -57,7 +60,7 @@ public class GameService {
                                 1000,
                                 "Hannibal Lecter")),
 
-                new Category("Wissenschaft & Technik",
+                new Category("League of Legends",
                         new Question("Was misst man mit einem Thermometer?", 100, "Temperatur"),
                         new Question("Wie viele Beine hat ein Insekt?", 200, "Sechs"),
                         new Question("Wer formulierte die Relativitätstheorie?", 300,
@@ -68,7 +71,7 @@ public class GameService {
                                 1000,
                                 "Den Rand eines Schwarzen Lochs")),
 
-                new Category("Musik",
+                new Category("Tierwelt",
                         new Question("Wer sang Thriller?", 100, "Michael Jackson"),
                         new Question("Welche Band besteht aus John, Paul, George und Ringo?",
                                 200, "Die Beatles"),
@@ -154,7 +157,7 @@ public class GameService {
         if (cat == null) {
             return false; // TODO: Maybe use Exceptions for error handling different cases?
         }
-        AbstractQuestion qst = cat.getQuestion(id.getQuestion());
+        AbstractQuestion<?> qst = cat.getQuestion(id.getQuestion());
         if (qst == null) {
             return false; // TODO: Maybe use Exceptions for error handling different cases?
         }
@@ -177,7 +180,7 @@ public class GameService {
         }
 
         if (p != null) {
-            AbstractQuestion q = selectedQuestion.getQuestion();
+            AbstractQuestion<?> q = selectedQuestion.getQuestion();
             int factor = 1;
             if (wrong) {
                 factor = q.allowWrongAnswer() ? 0 : -1;

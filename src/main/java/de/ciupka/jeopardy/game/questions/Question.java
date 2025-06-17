@@ -1,6 +1,8 @@
 package de.ciupka.jeopardy.game.questions;
 
-public class Question extends AbstractQuestion {
+import com.fasterxml.jackson.databind.JsonNode;
+
+public class Question extends AbstractQuestion<String> {
 
     public Question(String question, int points, String answer) {
         super(question, points, answer, Type.NORMAL);
@@ -15,6 +17,11 @@ public class Question extends AbstractQuestion {
     @Override
     public boolean allowMultipleAnswer() {
         return false;
+    }
+
+    @Override
+    public String parseAnswer(JsonNode node) {
+        return node.asText();
     }
 
 }

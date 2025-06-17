@@ -2,12 +2,12 @@ package de.ciupka.jeopardy.controller.messages;
 
 import de.ciupka.jeopardy.game.Player;
 
-public class Answer {
+public class Answer<T> {
 
     private Player player;
-    private String answer;
+    private T answer;
 
-    public Answer(Player p, String a) {
+    public Answer(Player p, T a) {
         this.player = p;
         this.answer = a;
     }
@@ -16,7 +16,7 @@ public class Answer {
         return player;
     }
 
-    public String getAnswer() {
+    public T getAnswer() {
         return answer;
     }
 

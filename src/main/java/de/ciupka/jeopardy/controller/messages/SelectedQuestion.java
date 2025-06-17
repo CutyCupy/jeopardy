@@ -8,13 +8,13 @@ public class SelectedQuestion {
 
     private QuestionIdentifier identifier;
     private Category category;
-    private AbstractQuestion question;
+    private AbstractQuestion<?> question;
     private Player selectedBy;
 
     public SelectedQuestion() {
     }
 
-    public SelectedQuestion(QuestionIdentifier id, Category cat, AbstractQuestion qst,
+    public SelectedQuestion(QuestionIdentifier id, Category cat, AbstractQuestion<?> qst,
             Player selectedBy) {
         this.identifier = id;
         this.category = cat;
@@ -30,7 +30,7 @@ public class SelectedQuestion {
         return category;
     }
 
-    public AbstractQuestion getQuestion() {
+    public AbstractQuestion<?> getQuestion() {
         return question;
     }
 

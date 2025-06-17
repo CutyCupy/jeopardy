@@ -28,7 +28,7 @@ const buzzerAudio = document.getElementById("buzzer-audio")
 
 
 answerText.addEventListener('input', debounce((args) => submitAnswerFactory(args[0].srcElement.value)(), 333))
-answerNumber.addEventListener('input', debounce((args) => submitAnswerFactory(args[0].srcElement.value)(), 333))
+answerNumber.addEventListener('input', debounce((args) => submitAnswerFactory(parseInt(args[0].srcElement.value || '0', 10))(), 333))
 
 const connect = () => {
     // ngrok http --host-header=localhost 8080
