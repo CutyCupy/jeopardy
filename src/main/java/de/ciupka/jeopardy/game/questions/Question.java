@@ -2,6 +2,9 @@ package de.ciupka.jeopardy.game.questions;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import de.ciupka.jeopardy.controller.messages.Answer;
+import de.ciupka.jeopardy.game.Player;
+
 public class Question extends AbstractQuestion<String> {
 
     public Question(String question, int points, String answer) {
@@ -20,8 +23,8 @@ public class Question extends AbstractQuestion<String> {
     }
 
     @Override
-    public String parseAnswer(JsonNode node) {
-        return node.asText();
+    public Answer<String> parseAnswer(JsonNode node, Player player) {
+        return new Answer<String>(player, node.asText());
     }
 
 }

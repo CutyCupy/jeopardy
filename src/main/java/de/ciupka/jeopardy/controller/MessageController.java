@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
 
@@ -16,8 +17,8 @@ import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 import de.ciupka.jeopardy.game.questions.Evaluatable;
-import de.ciupka.jeopardy.game.questions.RevealState;
 import de.ciupka.jeopardy.game.questions.Type;
+import de.ciupka.jeopardy.game.questions.QuestionState;
 import de.ciupka.jeopardy.services.NotificationService;
 
 /**
@@ -86,7 +87,7 @@ public class MessageController {
     @MessageMapping("/submit-answer")
     public boolean submitAnswer(SendAnswer answer, UserPrincipal principal) {
         Player answering = this.game.getPlayerByID(principal.getID());
-        if(answering == null) {
+        if (answering == null) {
             return false;
         }
 
@@ -96,7 +97,6 @@ public class MessageController {
             this.notifications.sendOnBuzzer();
         }
         this.notifications.setBuzzer(principal.getName(), false);
-
 
         Answer<?> result = game.getSelectedQuestion().getQuestion().addAnswer(answering, answer.getAnswer());
 
@@ -126,6 +126,20 @@ public class MessageController {
 
         this.notifications.sendLobbyUpdate(null);
         this.notifications.sendBoardUpdate(null);
+    }
+
+    @MessageMapping("/reveal-answer")
+    @SendTo("/topic/reveal-answer")
+    public Answer<?> revealAnswer(String player, UserPrincipal principal) {
+        if (!principal.getID().equals(this.game.getMaster())) {
+            return null;
+        }
+
+        if(game.getSelectedQuestion().getQuestion().getState().ordinal() < QuestionState.LOCK_QUESTION.ordinal()) {
+            return null;
+        }
+
+        return game.getSelectedQuestion().getQuestion().getAnswerByPlayer(game.getPlayerByName(player));
     }
 
     @MessageMapping("/question")
@@ -168,12 +182,12 @@ public class MessageController {
         boolean worked = more ? question.revealMore() : question.revealLess();
 
         if (worked) {
-            if (more && question.getState().equals(RevealState.SHOW_ANSWER) && question instanceof Evaluatable) {
+            if (more && question.getState().equals(QuestionState.SHOW_ANSWER) && question instanceof Evaluatable) {
                 ((Evaluatable<?>) question).evaluateAnswers();
                 this.notifications.sendLobbyUpdate(null);
             }
         } else {
-            if (question.getState().equals(RevealState.HIDDEN)) {
+            if (question.getState().equals(QuestionState.HIDDEN)) {
                 game.resetQuestion();
             } else {
                 game.closeQuestion();
@@ -181,7 +195,7 @@ public class MessageController {
             this.notifications.sendLobbyUpdate(null);
             this.notifications.sendBoardUpdate(null);
         }
-        
+
         this.notifications.sendQuestionUpdate(null);
     }
 

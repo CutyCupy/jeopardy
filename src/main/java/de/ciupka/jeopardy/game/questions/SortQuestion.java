@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import de.ciupka.jeopardy.controller.messages.Answer;
+import de.ciupka.jeopardy.game.Player;
 
 public class SortQuestion extends AbstractQuestion<String[]> implements Evaluatable<String[]> {
 
@@ -34,9 +35,9 @@ public class SortQuestion extends AbstractQuestion<String[]> implements Evaluata
     }
 
     @Override
-    public String[] parseAnswer(JsonNode node) {
+    public Answer<String[]> parseAnswer(JsonNode node, Player player) {
         ObjectMapper mapper = new ObjectMapper();
-        return mapper.convertValue(node, String[].class);
+        return new Answer<String[]>(player, mapper.convertValue(node, String[].class));
     }
 
     @Override

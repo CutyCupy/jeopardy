@@ -24,8 +24,8 @@ public class EstimateQuestion extends AbstractQuestion<Integer> implements Evalu
     }
 
     @Override
-    public Integer parseAnswer(JsonNode node) {
-        return node.asInt();
+    public Answer<Integer> parseAnswer(JsonNode node, Player player) {
+        return new Answer<Integer>(player, node.asInt());
     }
 
     @Override

@@ -141,6 +141,8 @@ const connect = () => {
         stompClient.subscribe("/topic/question-update", onQuestionUpdate);
         stompClient.subscribe("/user/topic/question-update", onQuestionUpdate);
 
+        stompClient.subscribe("/topic/reveal-answer", onAnswerUpdate)
+
 
         stompClient.subscribe("/topic/buzzer-update", (msg) => {
             var state = JSON.parse(msg.body);
@@ -163,51 +165,7 @@ const connect = () => {
         stompClient.subscribe("/topic/gamemaster-update", gamemasterUpdate)
         stompClient.subscribe("/user/topic/gamemaster-update", gamemasterUpdate)
 
-        stompClient.subscribe("/user/topic/answer", (msg) => {
-            var answer = JSON.parse(msg.body);
-
-            const id = `answer:${answer.player.name}`;
-            var answerCell = document.getElementById(id);
-            if (answerCell) {
-                answerCell.innerText = answer.answer;
-                return;
-            }
-            var row = answers.insertRow(-1);
-
-            var nameCell = row.insertCell(0);
-            nameCell.innerText = answer.player.name;
-
-            answerCell = row.insertCell(1);
-            answerCell.id = id;
-            answerCell.innerText = answer.answer;
-
-            var judgeCell = row.insertCell(2);
-            row.classList.add("text-center");
-
-            var correctButton = document.createElement("button");
-            var wrongButton = document.createElement("button")
-
-            var eventListenerFactory = (correct) => function () {
-                stompClient.send("/app/answer", {}, JSON.stringify({
-                    playerName: answer.player.name,
-                    isCorrect: correct,
-                }))
-
-                wrongButton.disabled = true;
-                correctButton.disabled = true;
-            }
-
-            correctButton.classList.add("btn", "btn-success", "mx-1");
-            correctButton.innerHTML = makeIcon("check-lg")
-            correctButton.addEventListener('click', eventListenerFactory(true))
-
-            wrongButton.classList.add("btn", "btn-danger", "mx-1");
-            wrongButton.innerHTML = makeIcon("x-lg")
-            wrongButton.addEventListener('click', eventListenerFactory(false))
-
-            judgeCell.appendChild(correctButton);
-            judgeCell.appendChild(wrongButton);
-        })
+        stompClient.subscribe("/user/topic/answer", onAnswerUpdate)
 
         stompClient.subscribe("/user/topic/gamemaster", (_) => {
             isGameMaster = true;
@@ -224,6 +182,64 @@ const connect = () => {
 
         stompClient.send('/app/on-connect');
     });
+}
+
+function onAnswerUpdate(msg) {
+    var answer = JSON.parse(msg.body);
+
+    const id = `answer:${answer.player.name}`;
+    var answerCell = document.getElementById(id);
+    if (answerCell) {
+        answerCell.innerText = answer.answer;
+        return;
+    }
+    var row = answers.insertRow(-1);
+
+    var nameCell = row.insertCell(0);
+    nameCell.innerText = answer.player.name;
+
+    answerCell = row.insertCell(1);
+    answerCell.id = id;
+    answerCell.innerText = answer.answer;
+
+    if (!isGameMaster) {
+        return;
+    }
+
+    var judgeCell = row.insertCell(2);
+    row.classList.add("text-center");
+
+    var correctButton = document.createElement("button");
+    var wrongButton = document.createElement("button");
+    var revealButton = document.createElement("button");
+
+    var eventListenerFactory = (correct) => function () {
+        stompClient.send("/app/answer", {}, JSON.stringify({
+            playerName: answer.player.name,
+            isCorrect: correct,
+        }))
+
+        wrongButton.disabled = true;
+        correctButton.disabled = true;
+    }
+
+    correctButton.classList.add("btn", "btn-success", "mx-1");
+    correctButton.innerHTML = makeIcon("check-lg")
+    correctButton.addEventListener('click', eventListenerFactory(true))
+
+    wrongButton.classList.add("btn", "btn-danger", "mx-1");
+    wrongButton.innerHTML = makeIcon("x-lg")
+    wrongButton.addEventListener('click', eventListenerFactory(false))
+
+    revealButton.classList.add("btn", "btn-warning", "mx-1");
+    revealButton.innerHTML = makeIcon("search")
+    revealButton.addEventListener('click', function () {
+        stompClient.send("/app/reveal-answer", {}, answer.player.name);
+    })
+
+    judgeCell.appendChild(correctButton);
+    judgeCell.appendChild(wrongButton);
+    judgeCell.appendChild(revealButton);
 }
 
 function onSortAnswerChange() {
@@ -319,10 +335,12 @@ function onQuestionUpdate(msg) {
                 break;
             case 'VIDEO':
                 toDisplay.push(answerText);
-                if (!isGameMaster) {
-                    question_data.innerHTML = makeVideoHTML(update.question.path);
-                }
                 if (showQuestionData) {
+                    if (!isGameMaster) {
+                        if (!question_data.innerHTML) {
+                            question_data.innerHTML = makeVideoHTML(update.question.path);
+                        }
+                    }
                     toDisplay.push(question_data);
                 }
                 break;
@@ -401,6 +419,8 @@ function onQuestionUpdate(msg) {
                 break;
             case 'VIDEO':
                 answerText.dispatchEvent(new Event("input"));
+                question_data.innerHTML = '';
+                question_data.replaceChildren();
                 break;
             case 'SORT':
                 onSortAnswerChange();
@@ -408,6 +428,12 @@ function onQuestionUpdate(msg) {
         }
         updateBuzzerState(false);
     }
+
+    toDisplay.forEach((v) => {
+        v.readOnly = isLocked;
+        v.style.pointerEvents = isLocked ? 'none' : 'auto';
+    });
+
 
     if (showAnswer) {
         switch (update.question.type) {
@@ -421,7 +447,9 @@ function onQuestionUpdate(msg) {
                 break;
             case 'VIDEO':
                 question_data.innerHTML = '';
-                answer.innerHTML = makeVideoHTML(update.question.answer);
+                if (!answer.innerHTML) {
+                    answer.innerHTML = makeVideoHTML(update.question.answer);
+                }
                 break;
             case 'SORT':
                 answer.innerText = update.question.answer.join(", ");
@@ -430,12 +458,9 @@ function onQuestionUpdate(msg) {
         toDisplay.push(answer);
     }
 
-    toDisplay.forEach((v) => {
+    toDisplay.forEach((v) => {        
         v.style.display = null;
-        v.readOnly = isLocked;
-        v.style.pointerEvents = isLocked ? 'none' : 'auto';
     });
-
 }
 
 function reveal(more) {
@@ -493,6 +518,11 @@ function resetQuestion() {
     answerNumber.value = '';
 
     answers.replaceChildren();
+    question_data.replaceChildren();
+    question_data.innerHTML = '';
+
+    answer.replaceChildren();
+    answer.innerHTML = '';
 
     hideQuestion();
 }

@@ -1,17 +1,17 @@
 package de.ciupka.jeopardy.game.questions;
 
-public enum RevealState {
+public enum QuestionState {
     HIDDEN, SHOW_CATEGORY, SHOW_QUESTION, SHOW_QUESTION_DATA, LOCK_QUESTION, SHOW_ANSWER;
 
-    public RevealState next() {
-        RevealState[] vals = values();
+    public QuestionState next() {
+        QuestionState[] vals = values();
         int nextOrdinal = this.ordinal() + 1;
         return nextOrdinal < vals.length ? vals[nextOrdinal] : this;
     }
     
-    public RevealState previous() {
-        RevealState[] vals = values();
+    public QuestionState previous() {
+        QuestionState[] vals = values();
         int nextOrdinal = this.ordinal() - 1;
-        return nextOrdinal < vals.length ? vals[nextOrdinal] : this;
+        return nextOrdinal >= 0 ? vals[nextOrdinal] : this;
     }
 }
