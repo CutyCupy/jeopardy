@@ -11,9 +11,9 @@
 
     <link rel="stylesheet" href="node_modules/primer-css/build/build.css">
     <link rel="stylesheet" href="node_modules/octicons/build/font/octicons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css">
     <script src="./app.js" defer></script>
 </head>
-
 <body style="background-color: lightgrey;">
     <h1>Willkommen zum Jeopardy-Spiel</h1>
     <div class="container-fluid">
@@ -56,14 +56,14 @@
                     <img src="./img/disbutton.png" class="img-fluid ms-auto" id="buzzer" style="border-radius: 100%">
                     <textarea class="form-control" id="answer-textfield" placeholder="Antwort..."></textarea>
                     <input type="number" class="form-control" id="answer-numberfield" placeholder="Antwort...">
-                    <div id="answer-sort">
-
-                    </div>
+                    <table class="table table-bordered table-striped table-light minimal-table" id="answer-sort">
+                    </table>
                 </div>
             </div>
 
             <div class="col" id="gamemaster-area" style="display: none">
                 <button class="btn btn-success" style="width: 100%;" onclick="startGame()">Spiel starten</button>
+                <span id="current-question-state"></span>
                 <table class="table table-bordered table-striped table-light" id="answers-table">
                     <thead class="table-dark">
                         <tr>
@@ -75,12 +75,8 @@
                     <tbody id="answers">
                     </tbody>
                 </table>
-                <button class="btn btn-warning my-1" style="width: 100%;" onclick="lockQuestion()">Frage
-                    einfrieren</button>
-                <button class="btn btn-warning my-1" style="width: 100%;" onclick="revealAnswer()">Antwort
-                    veröffentlich</button>
-                <button class="btn btn-danger my-1" style="width: 100%;" onclick="skipQuestion()">Frage
-                    überspringen</button>
+                <button class="btn btn-warning my-1" style="width: 100%;" onclick="reveal(true)" id="reveal-more">Reveal More</button>
+                <button class="btn btn-warning my-1" style="width: 100%;" onclick="reveal(false)" id="reveal-less">Reveal Less</button>
             </div>
         </div>
 

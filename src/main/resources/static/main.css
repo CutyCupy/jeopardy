@@ -1,0 +1,7 @@
+.minimal-table {
+    margin-left: auto;
+    width: fit-content;
+    td {
+        align-content: center;
+    }
+}

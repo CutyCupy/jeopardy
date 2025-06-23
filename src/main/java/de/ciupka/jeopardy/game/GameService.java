@@ -148,6 +148,10 @@ public class GameService {
         return this.board[idx];
     }
 
+    public void resetQuestion() {
+        this.selectedQuestion = null;
+    }
+
     public boolean selectQuestion(QuestionIdentifier id) {
         if (this.selectedQuestion != null) {
             return false; // TODO: Maybe use Exceptions for error handling different cases?

@@ -20,4 +20,7 @@ public class Answer<T> {
         return answer;
     }
 
+    public void setAnswer(T answer) {
+        this.answer = answer;
+    }
 }

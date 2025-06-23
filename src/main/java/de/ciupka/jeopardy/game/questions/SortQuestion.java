@@ -12,13 +12,15 @@ import de.ciupka.jeopardy.controller.messages.Answer;
 
 public class SortQuestion extends AbstractQuestion<String[]> implements Evaluatable<String[]> {
 
-    private List<String> options;
+    private String[] options;
 
     public SortQuestion(String question, int points, String[] answer) {
         super(question, points, answer, Type.SORT);
 
-        options = new ArrayList<>(List.of(answer));
+        List<String> options = new ArrayList<>(List.of(answer));
         Collections.shuffle(options);
+
+        this.options = options.toArray(new String[options.size()]);
     }
 
     @Override
@@ -38,11 +40,19 @@ public class SortQuestion extends AbstractQuestion<String[]> implements Evaluata
     }
 
     @Override
-    public void evaluateAnswers(List<Answer<String[]>> answers) {
-        for (Answer<String[]> answer : answers) {
-            giveOrTakePoints(answer.getPlayer(), !Arrays.equals(answer.getAnswer(), getAnswer()));
+    public void evaluateAnswers() {
+        for (Answer<String[]> answer : getAnswers()) {
+            if (Arrays.equals(answer.getAnswer(), getAnswer())) {
+                answer.getPlayer().updateScore(getPoints());
+            } else {
+                answer.getPlayer().updateScore(getWrongPoints());
+            }
         }
         setAnswered(true);
+    }
+
+    public String[] getOptions() {
+        return options;
     }
 
 }

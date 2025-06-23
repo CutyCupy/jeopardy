@@ -13,6 +13,7 @@ const question_data = document.getElementById("question-data");
 var buzzer = document.getElementById("buzzer");
 const answerText = document.getElementById("answer-textfield");
 const answerNumber = document.getElementById("answer-numberfield");
+const answerSort = document.getElementById("answer-sort");
 const answer = document.getElementById("answer");
 const answers = document.getElementById("answers");
 
@@ -24,7 +25,10 @@ const questionAnswerToolWrapper = document.getElementById("question-answer-tool-
 
 const alertPlaceholder = document.getElementById('alert');
 
-const buzzerAudio = document.getElementById("buzzer-audio")
+const buzzerAudio = document.getElementById("buzzer-audio");
+
+const revealMore = document.getElementById("reveal-more");
+const revealLess = document.getElementById("reveal-less");
 
 
 answerText.addEventListener('input', debounce((args) => submitAnswerFactory(args[0].srcElement.value)(), 333))
@@ -137,15 +141,6 @@ const connect = () => {
         stompClient.subscribe("/topic/question-update", onQuestionUpdate);
         stompClient.subscribe("/user/topic/question-update", onQuestionUpdate);
 
-        stompClient.subscribe("/user/topic/answer-update", answerUpdate)
-        stompClient.subscribe("/topic/answer-update", answerUpdate)
-
-
-        stompClient.subscribe("/topic/lock-question", (msg) => {
-            updateBuzzerState(false);
-
-            Array.from(questionAnswerToolWrapper.children).forEach((v) => v.readOnly = true);
-        });
 
         stompClient.subscribe("/topic/buzzer-update", (msg) => {
             var state = JSON.parse(msg.body);
@@ -203,13 +198,11 @@ const connect = () => {
             }
 
             correctButton.classList.add("btn", "btn-success", "mx-1");
-            correctButton.style.fontFamily = "'Segoe UI Symbol', 'Arial', sans-serif";
-            correctButton.innerText = "✔"
+            correctButton.innerHTML = makeIcon("check-lg")
             correctButton.addEventListener('click', eventListenerFactory(true))
 
             wrongButton.classList.add("btn", "btn-danger", "mx-1");
-            wrongButton.style.fontFamily = "'Segoe UI Symbol', 'Arial', sans-serif";
-            wrongButton.innerText = "✖"
+            wrongButton.innerHTML = makeIcon("x-lg")
             wrongButton.addEventListener('click', eventListenerFactory(false))
 
             judgeCell.appendChild(correctButton);
@@ -231,6 +224,10 @@ const connect = () => {
 
         stompClient.send('/app/on-connect');
     });
+}
+
+function onSortAnswerChange() {
+    submitAnswerFactory(Array.from(answerSort.rows).map((v) => v.entry))();
 }
 
 function onLobbyUpdate(msg) {
@@ -272,66 +269,181 @@ function onLobbyUpdate(msg) {
     showAlert('info', `Die Lobby wurde geupdated!`);
 }
 
+var states = ['HIDDEN', 'SHOW_CATEGORY', 'SHOW_QUESTION', 'SHOW_QUESTION_DATA', 'LOCK_QUESTION', 'REVEAL_ANSWERS', 'SHOW_ANSWER']
+
 function onQuestionUpdate(msg) {
-    hideQuestion();
     var update = JSON.parse(msg.body);
     if (!update.question) {
+        resetQuestion();
         return;
     }
+    hideQuestion();
 
-    toDisplay = [
-        question_header, question
-    ];
+    toDisplay = [];
 
-    question_header.innerText = `${update.category.name} - ${update.question.points} Punkte`
+
+    var idx = states.indexOf(update.question.state);
+
+    revealMore.innerText = states[idx + 1] || "Frage abschließen";
+    revealLess.innerText = states[idx - 1] || "Frage zurücknehmen";
+
+
+    const showCategory = states.indexOf('SHOW_CATEGORY') <= idx || isGameMaster;
+    const showQuestion = states.indexOf('SHOW_QUESTION') <= idx || isGameMaster;
+    const showQuestionData = states.indexOf('SHOW_QUESTION_DATA') <= idx || isGameMaster;
+    const isLocked = states.indexOf('LOCK_QUESTION') <= idx || isGameMaster;
+    const showAnswer = states.indexOf('SHOW_ANSWER') <= idx || isGameMaster;
+
+    question_header.innerText = `${update.category.name} - ${update.question.points} Punkte`;
     question.innerText = update.question.question;
-    switch (update.question.type) {
-        case 'NORMAL':
-            updateBuzzerState(true);
+
+    if (showCategory) {
+        toDisplay.push(question_header);
+        if (update.question.type === 'NORMAL') {
             toDisplay.push(buzzer);
-            break;
-        case 'TEXT':
-            answerText.value = '';
-            toDisplay.push(answerText);
-            break;
-        case 'ESTIMATE':
-            answerNumber.value = '';
-            toDisplay.push(answerNumber);
-            break;
-        case 'VIDEO':
-            answerText.value = '';
-            toDisplay.push(answerText);
-            if (!isGameMaster) {
-                question_data.innerHTML = makeVideoHTML(update.question.path);
-            }
-            toDisplay.push(question_data);
-            break;
+        }
+    }
+
+    if (showQuestion) {
+        toDisplay.push(question);
+
+        switch (update.question.type) {
+            case 'NORMAL':
+                toDisplay.push(buzzer);
+                break;
+            case 'TEXT':
+                toDisplay.push(answerText);
+                break;
+            case 'ESTIMATE':
+                toDisplay.push(answerNumber);
+                break;
+            case 'VIDEO':
+                toDisplay.push(answerText);
+                if (!isGameMaster) {
+                    question_data.innerHTML = makeVideoHTML(update.question.path);
+                }
+                if (showQuestionData) {
+                    toDisplay.push(question_data);
+                }
+                break;
+            case 'SORT':
+                if (!showQuestionData) {
+                    const rowCount = answerSort.rows.length;
+                    for (var i = 0; i < rowCount; i++) {
+                        answerSort.deleteRow(0);
+                    }
+
+                    for (var entry of update.question.options) {
+                        var row = answerSort.insertRow(-1);
+                        row.id = `sort:${entry}`
+                        row.entry = entry;
+
+                        var entryCell = row.insertCell(0);
+                        entryCell.innerText = entry;
+
+                        moveCell = row.insertCell(1);
+                        var upButton = document.createElement("button");
+                        var downButton = document.createElement("button")
+
+                        var eventListenerFactory = (id, up) => function () {
+                            var rows = Array.from(answerSort.rows);
+                            var idx = rows.findIndex((v) => v.id == id);
+                            var other = idx;
+
+                            if (up) {
+                                idx--;
+                            } else {
+                                other++;
+                            }
+
+                            if (idx < 0 || other >= rows.length) {
+                                return;
+                            }
+
+                            var rowA = answerSort.rows[idx];
+                            var rowB = answerSort.rows[other]
+
+                            answerSort.tBodies[0].insertBefore(rowB, rowA)
+                            answerSort.tBodies[0].insertBefore(rowA, rowB.nextSibling);
+
+                            onSortAnswerChange();
+                        }
+
+                        upButton.classList.add("btn", "btn-success", "mx-1");
+                        upButton.innerHTML = makeIcon("caret-up-fill")
+                        upButton.addEventListener('click', eventListenerFactory(row.id, true))
+
+                        downButton.classList.add("btn", "btn-danger", "mx-1");
+                        downButton.innerHTML = makeIcon("caret-down-fill")
+                        downButton.addEventListener('click', eventListenerFactory(row.id, false))
+
+
+                        moveCell.appendChild(upButton);
+                        moveCell.appendChild(downButton);
+                    }
+                }
+                toDisplay.push(answerSort);
+                break;
+        }
+    }
+
+
+    if (isLocked && !isGameMaster) {
+        switch (update.question.type) {
+            case 'NORMAL':
+                updateBuzzerState(false);
+                break;
+            case 'TEXT':
+                answerText.dispatchEvent(new Event("input"));
+                break;
+            case 'ESTIMATE':
+                answerNumber.dispatchEvent(new Event("input"));
+                break;
+            case 'VIDEO':
+                answerText.dispatchEvent(new Event("input"));
+                break;
+            case 'SORT':
+                onSortAnswerChange();
+                break;
+        }
+        updateBuzzerState(false);
+    }
+
+    if (showAnswer) {
+        switch (update.question.type) {
+            case 'NORMAL':
+            case 'TEXT':
+            case 'ESTIMATE':
+                const span = document.createElement("span");
+                span.innerText = update.question.answer;
+
+                answer.replaceChildren(span);
+                break;
+            case 'VIDEO':
+                question_data.innerHTML = '';
+                answer.innerHTML = makeVideoHTML(update.question.answer);
+                break;
+            case 'SORT':
+                answer.innerText = update.question.answer.join(", ");
+                break;
+        }
+        toDisplay.push(answer);
     }
 
     toDisplay.forEach((v) => {
         v.style.display = null;
-        v.readOnly = false;
-    })
+        v.readOnly = isLocked;
+        v.style.pointerEvents = isLocked ? 'none' : 'auto';
+    });
+
 }
 
-function answerUpdate(msg) {
-    var update = JSON.parse(msg.body);
-    switch (update.question.type) {
-        case 'NORMAL':
-        case 'TEXT':
-        case 'ESTIMATE':
-            const span = document.createElement("span");
-            span.innerText = update.question.answer;
+function reveal(more) {
+    stompClient.send("/app/reveal-question", {}, more);
+}
 
-            answer.replaceChildren(span);
-            break;
-        case 'VIDEO':
-            question_data.innerHTML = '';
-            answer.innerHTML = makeVideoHTML(update.question.answer);
-            break;
-    }
-
-    answer.style.display = null;
+function makeIcon(name) {
+    return `<i class="bi bi-${name}"></i>`
 }
 
 function makeVideoHTML(src) {
@@ -361,24 +473,32 @@ function highlightPlayer(name) {
 
 function hideQuestion() {
     Array.from(questionWrapper.children).forEach((v) => {
-        v.replaceChildren();
-        v.innerText = '';
+        v.style.display = 'none';
     });
     Array.from(questionAnswerToolWrapper.children).forEach((v) => v.style.display = 'none');
 
+}
+function resetQuestion() {
+    Array.from(questionWrapper.children).forEach((v) => {
+        v.replaceChildren();
+        v.innerText = '';
+    });
+    Array.from(questionAnswerToolWrapper.children).forEach((v) => {
+        v.value = '';
+        v.replaceChildren();
+    });
+
+    updateBuzzerState(true);
+    answerText.value = '';
+    answerNumber.value = '';
+
     answers.replaceChildren();
+
+    hideQuestion();
 }
 
 function hideJoinButtons() {
     Array.from(joinButtons.children).forEach((v) => v.style.display = 'none');
-}
-
-function lockQuestion() {
-    stompClient.send("/app/lock-question", {});
-}
-
-function revealAnswer() {
-    stompClient.send("/app/reveal-answer", {});
 }
 
 function skipQuestion() {

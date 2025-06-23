@@ -23,12 +23,10 @@ public class NotificationService {
     private static final String LOBBY_UPDATE = "/topic/lobby-update";
     private static final String BOARD_UPDATE = "/topic/board-update";
     private static final String QUESTION_UPDATE = "/topic/question-update";
-    private static final String ANSWER_UPDATE = "/topic/answer-update";
     private static final String GAMEMASTER_UPDATE = "/topic/gamemaster-update";
     private static final String BUZZER_UPDATE = "/topic/buzzer-update";
     private static final String ON_BUZZER = "/topic/on-buzzer";
     private static final String ANSWER = "/topic/answer";
-    private static final String LOCK_QUESTION = "/topic/lock-question";
 
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -69,15 +67,6 @@ public class NotificationService {
         this.message(userId, QUESTION_UPDATE, question);
     }
 
-    public void sendAnswerUpdate(final String userId) {
-        SelectedQuestion question = this.game.getSelectedQuestion();
-        if (question == null) {
-            this.message(userId, QUESTION_UPDATE, new SelectedQuestion());
-            return;
-        }
-        this.message(userId, ANSWER_UPDATE, question);
-    }
-
     public void sendGameMasterUpdate(final String userId) {
         this.message(userId, GAMEMASTER_UPDATE, this.game.getMaster() != null);
     }
@@ -92,9 +81,5 @@ public class NotificationService {
 
     public void sendAnswer(String userId, Answer<?> answer) {
         this.message(userId, ANSWER, answer);
-    }
-
-    public void lockQuestion() {
-        this.message(null, LOCK_QUESTION, new HashMap<>());
     }
 }

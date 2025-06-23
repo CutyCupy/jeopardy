@@ -1,6 +1,5 @@
 package de.ciupka.jeopardy.controller;
 
-import java.security.Principal;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +15,8 @@ import de.ciupka.jeopardy.controller.messages.SendAnswer;
 import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
+import de.ciupka.jeopardy.game.questions.Evaluatable;
+import de.ciupka.jeopardy.game.questions.RevealState;
 import de.ciupka.jeopardy.game.questions.Type;
 import de.ciupka.jeopardy.services.NotificationService;
 
@@ -34,11 +35,9 @@ public class MessageController {
     private NotificationService notifications;
 
     @MessageMapping("/on-connect")
-    public void onConnect(Principal principal) {
-        UserPrincipal up = (UserPrincipal) principal;
-
-        this.notifications.sendGameMasterUpdate(up.getName());
-        this.notifications.sendLobbyUpdate(up.getName());
+    public void onConnect(UserPrincipal principal) {
+        this.notifications.sendGameMasterUpdate(principal.getName());
+        this.notifications.sendLobbyUpdate(principal.getName());
     }
 
     /**
@@ -56,9 +55,8 @@ public class MessageController {
      */
     @MessageMapping("/join")
     @SendToUser("/topic/join")
-    public boolean join(String name, Principal principal) {
-        UserPrincipal up = (UserPrincipal) principal;
-        final boolean added = this.game.addPlayer(up.getID(), name);
+    public boolean join(String name, UserPrincipal principal) {
+        final boolean added = this.game.addPlayer(principal.getID(), name);
 
         /**
          * TODO: Might be necessary to send more data on lobby updates.
@@ -67,18 +65,16 @@ public class MessageController {
          */
         notifications.sendLobbyUpdate(null);
         if (game.isActive()) {
-            notifications.sendBoardUpdate(up.getName());
-            notifications.sendQuestionUpdate(up.getName());
+            notifications.sendBoardUpdate(principal.getName());
+            notifications.sendQuestionUpdate(principal.getName());
         }
 
         return added;
     }
 
     @MessageMapping("/start-game")
-    public void startGame(Principal principal) {
-        UserPrincipal up = (UserPrincipal) principal;
-
-        if (!up.getID().equals(this.game.getMaster()) || this.game.isActive()) {
+    public void startGame(UserPrincipal principal) {
+        if (!principal.getID().equals(this.game.getMaster()) || this.game.isActive()) {
             return;
         }
 
@@ -88,28 +84,36 @@ public class MessageController {
     }
 
     @MessageMapping("/submit-answer")
-    public boolean submitAnswer(SendAnswer answer, Principal principal) {
-        UserPrincipal up = (UserPrincipal) principal;
+    public boolean submitAnswer(SendAnswer answer, UserPrincipal principal) {
+        Player answering = this.game.getPlayerByID(principal.getID());
+        if(answering == null) {
+            return false;
+        }
 
         AbstractQuestion<?> question = this.game.getSelectedQuestion().getQuestion();
         // TODO: This can be checked better
         if (question.getType().equals(Type.NORMAL)) {
             this.notifications.sendOnBuzzer();
         }
-        this.notifications.setBuzzer(up.getName(), false);
+        this.notifications.setBuzzer(principal.getName(), false);
 
-        Player answering = this.game.getPlayerByID(up.getID());
+
+        Answer<?> result = game.getSelectedQuestion().getQuestion().addAnswer(answering, answer.getAnswer());
 
         UUID master = this.game.getMaster();
 
-        this.notifications.sendAnswer(master.toString(), new Answer<>(answering, question.parseAnswer(answer.getAnswer())));
+        this.notifications.sendAnswer(master.toString(),
+                result);
         return false;
     }
 
     @MessageMapping("/answer")
-    public void answer(AnswerEvaluation answer, Principal principal) {
-        UserPrincipal up = (UserPrincipal) principal;
-        if (!up.getID().equals(this.game.getMaster())) {
+    public void answer(AnswerEvaluation answer, UserPrincipal principal) {
+        if (!principal.getID().equals(this.game.getMaster())) {
+            return;
+        }
+
+        if (game.getSelectedQuestion().getQuestion() instanceof Evaluatable) {
             return;
         }
 
@@ -126,11 +130,10 @@ public class MessageController {
 
     @MessageMapping("/question")
     @SendToUser("/topic/question")
-    public String question(QuestionIdentifier identifier, Principal principal) {
-        UserPrincipal up = (UserPrincipal) principal;
+    public String question(QuestionIdentifier identifier, UserPrincipal principal) {
         Player active = this.game.getCurrentPlayer();
 
-        if (!active.getUuid().equals(up.getID())) {
+        if (!active.getUuid().equals(principal.getID())) {
             return "Du bist nicht an der Reihe!";
         }
 
@@ -141,53 +144,45 @@ public class MessageController {
         this.notifications.sendBoardUpdate(null);
         this.notifications.sendQuestionUpdate(null);
 
-        this.notifications.sendAnswerUpdate(this.game.getMaster().toString());
-
         return null;
     }
 
     @MessageMapping("/gamemaster")
     @SendToUser("topic/gamemaster")
-    public boolean setGameMaster(Principal principal) {
-        UserPrincipal up = (UserPrincipal) principal;
-        this.game.setMaster(up.getID());
+    public boolean setGameMaster(UserPrincipal principal) {
+        this.game.setMaster(principal.getID());
 
         this.notifications.sendGameMasterUpdate(null);
 
         return true;
     }
 
-    @MessageMapping("/skip-question")
-    public void skipQuestion(Principal principal) {
-        UserPrincipal up = (UserPrincipal) principal;
-        if (!up.getID().equals(this.game.getMaster())) {
-            return;
-        }
-
-        game.closeQuestion();
-
-        this.notifications.sendQuestionUpdate(null);
-        this.notifications.sendLobbyUpdate(null);
-        this.notifications.sendBoardUpdate(null);
-    }
-
-    @MessageMapping("/lock-question")
-    public void lockQuestion(Principal principal) {
-        UserPrincipal up = (UserPrincipal) principal;
-        if (!up.getID().equals(this.game.getMaster())) {
-            return;
-        }
-
-        this.notifications.lockQuestion();
-    }
-
-    @MessageMapping("/reveal-answer")
-    public void revealQuestion(UserPrincipal principal) {
+    @MessageMapping("/reveal-question")
+    public void lockQuestion(boolean more, UserPrincipal principal) {
         if (!principal.getID().equals(this.game.getMaster())) {
             return;
         }
 
-        this.notifications.sendAnswerUpdate(null);
+        AbstractQuestion<?> question = game.getSelectedQuestion().getQuestion();
+
+        boolean worked = more ? question.revealMore() : question.revealLess();
+
+        if (worked) {
+            if (more && question.getState().equals(RevealState.SHOW_ANSWER) && question instanceof Evaluatable) {
+                ((Evaluatable<?>) question).evaluateAnswers();
+                this.notifications.sendLobbyUpdate(null);
+            }
+        } else {
+            if (question.getState().equals(RevealState.HIDDEN)) {
+                game.resetQuestion();
+            } else {
+                game.closeQuestion();
+            }
+            this.notifications.sendLobbyUpdate(null);
+            this.notifications.sendBoardUpdate(null);
+        }
+        
+        this.notifications.sendQuestionUpdate(null);
     }
 
 }
