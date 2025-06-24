@@ -15,7 +15,8 @@ const answerText = document.getElementById("answer-textfield");
 const answerNumber = document.getElementById("answer-numberfield");
 const answerSort = document.getElementById("answer-sort");
 const answer = document.getElementById("answer");
-const answers = document.getElementById("answers");
+const playerAnswers = document.getElementById("player-answers");
+const gamemasterAnswers = document.getElementById("gamemaster-answers");
 
 const playerArea = document.getElementById("player-area")
 const gamemasterArea = document.getElementById("gamemaster-area")
@@ -26,13 +27,23 @@ const questionAnswerToolWrapper = document.getElementById("question-answer-tool-
 const alertPlaceholder = document.getElementById('alert');
 
 const buzzerAudio = document.getElementById("buzzer-audio");
+const countdownBeepAudio = document.getElementById("countdown-beep-audio");
+const countdownEndAudio = document.getElementById("countdown-end-audio");
 
 const revealMore = document.getElementById("reveal-more");
 const revealLess = document.getElementById("reveal-less");
 
+const countdownWrapper = document.getElementById("countdown");
+const countdownText = document.getElementById("countdown-text");
+const countdownCircle = document.getElementById("countdown-circle");
 
 answerText.addEventListener('input', debounce((args) => submitAnswerFactory(args[0].srcElement.value)(), 333))
 answerNumber.addEventListener('input', debounce((args) => submitAnswerFactory(parseInt(args[0].srcElement.value || '0', 10))(), 333))
+
+const COUNTDOWN_LENGTH = 5;
+
+var countdown;
+var countdownInterval;
 
 const connect = () => {
     // ngrok http --host-header=localhost 8080
@@ -184,23 +195,33 @@ const connect = () => {
     });
 }
 
+function formatAnswer(txt) {
+    if (Array.isArray(txt)) {
+        return txt.join(', ');
+    }
+    return txt;
+}
+
 function onAnswerUpdate(msg) {
     var answer = JSON.parse(msg.body);
 
     const id = `answer:${answer.player.name}`;
     var answerCell = document.getElementById(id);
     if (answerCell) {
-        answerCell.innerText = answer.answer;
+        answerCell.innerText = formatAnswer(answer.answer);
         return;
     }
-    var row = answers.insertRow(-1);
+
+    var myAnswers = isGameMaster ? gamemasterAnswers : playerAnswers;
+
+    var row = myAnswers.insertRow(-1);
 
     var nameCell = row.insertCell(0);
     nameCell.innerText = answer.player.name;
 
     answerCell = row.insertCell(1);
     answerCell.id = id;
-    answerCell.innerText = answer.answer;
+    answerCell.innerText = formatAnswer(answer.answer);
 
     if (!isGameMaster) {
         return;
@@ -307,8 +328,8 @@ function onQuestionUpdate(msg) {
     const showCategory = states.indexOf('SHOW_CATEGORY') <= idx || isGameMaster;
     const showQuestion = states.indexOf('SHOW_QUESTION') <= idx || isGameMaster;
     const showQuestionData = states.indexOf('SHOW_QUESTION_DATA') <= idx || isGameMaster;
-    const isLocked = states.indexOf('LOCK_QUESTION') <= idx || isGameMaster;
-    const showAnswer = states.indexOf('SHOW_ANSWER') <= idx || isGameMaster;
+    const isLocked = states.indexOf('LOCK_QUESTION') <= idx;
+    const showAnswer = states.indexOf('SHOW_ANSWER') <= idx;
 
     question_header.innerText = `${update.category.name} - ${update.question.points} Punkte`;
     question.innerText = update.question.question;
@@ -406,36 +427,62 @@ function onQuestionUpdate(msg) {
     }
 
 
-    if (isLocked && !isGameMaster) {
-        switch (update.question.type) {
-            case 'NORMAL':
-                updateBuzzerState(false);
-                break;
-            case 'TEXT':
-                answerText.dispatchEvent(new Event("input"));
-                break;
-            case 'ESTIMATE':
-                answerNumber.dispatchEvent(new Event("input"));
-                break;
-            case 'VIDEO':
-                answerText.dispatchEvent(new Event("input"));
-                question_data.innerHTML = '';
-                question_data.replaceChildren();
-                break;
-            case 'SORT':
-                onSortAnswerChange();
-                break;
+    if (isLocked && !showAnswer) {
+        countdown = COUNTDOWN_LENGTH;
+        const diameter = 2 * Math.PI * 90; // TODO: Maybe hardcode the radius?
+
+        var cb = function () {
+            countdownWrapper.style.display = null;
+
+            countdownText.innerHTML = `${countdown}s`;
+            countdownCircle.style.strokeDashoffset = (1 - (countdown / COUNTDOWN_LENGTH)) * diameter;
+            if (countdown < 0) {
+                countdownEndAudio.play();
+                countdownWrapper.style.display = 'none';
+                clearInterval(countdownInterval);
+
+                switch (update.question.type) {
+                    case 'NORMAL':
+                        updateBuzzerState(false);
+                        break;
+                    case 'TEXT':
+                        answerText.dispatchEvent(new Event("input"));
+                        break;
+                    case 'ESTIMATE':
+                        answerNumber.dispatchEvent(new Event("input"));
+                        break;
+                    case 'VIDEO':
+                        answerText.dispatchEvent(new Event("input"));
+                        question_data.innerHTML = '';
+                        question_data.replaceChildren();
+                        break;
+                    case 'SORT':
+                        onSortAnswerChange();
+                        break;
+                }
+
+
+                toDisplay.forEach((v) => {
+                    v.readOnly = true;
+                    v.style.pointerEvents = 'none';
+                });
+
+                return;
+            }
+            countdown--;
+            countdownBeepAudio.play();
         }
-        updateBuzzerState(false);
+        cb();
+        countdownInterval = setInterval(cb, 1000);
+    } else if (!showAnswer) {
+        toDisplay.forEach((v) => {
+            v.readOnly = false;
+            v.style.pointerEvents = 'auto';
+        });
     }
 
-    toDisplay.forEach((v) => {
-        v.readOnly = isLocked;
-        v.style.pointerEvents = isLocked ? 'none' : 'auto';
-    });
 
-
-    if (showAnswer) {
+    if (showAnswer || isGameMaster) {
         switch (update.question.type) {
             case 'NORMAL':
             case 'TEXT':
@@ -458,7 +505,7 @@ function onQuestionUpdate(msg) {
         toDisplay.push(answer);
     }
 
-    toDisplay.forEach((v) => {        
+    toDisplay.forEach((v) => {
         v.style.display = null;
     });
 }
@@ -517,7 +564,8 @@ function resetQuestion() {
     answerText.value = '';
     answerNumber.value = '';
 
-    answers.replaceChildren();
+    gamemasterAnswers.replaceChildren();
+    playerAnswers.replaceChildren();
     question_data.replaceChildren();
     question_data.innerHTML = '';
 
