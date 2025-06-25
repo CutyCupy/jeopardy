@@ -52,7 +52,7 @@ const connect = () => {
     stompClient = Stomp.over(socket);
     stompClient.connect({}, () => {
         // TODO: Add needed subscriptions to updates when implemented
-
+        resetQuestion();
         // subscribes to user specific messages about lobby join information. Displays a message when joined successfully.
         stompClient.subscribe("/user/topic/join", (msg) => {
             hideJoinButtons();
@@ -152,9 +152,6 @@ const connect = () => {
         stompClient.subscribe("/topic/question-update", onQuestionUpdate);
         stompClient.subscribe("/user/topic/question-update", onQuestionUpdate);
 
-        stompClient.subscribe("/topic/reveal-answer", onAnswerUpdate)
-
-
         stompClient.subscribe("/topic/buzzer-update", (msg) => {
             var state = JSON.parse(msg.body);
 
@@ -176,6 +173,7 @@ const connect = () => {
         stompClient.subscribe("/topic/gamemaster-update", gamemasterUpdate)
         stompClient.subscribe("/user/topic/gamemaster-update", gamemasterUpdate)
 
+        stompClient.subscribe("/topic/answer", onAnswerUpdate)
         stompClient.subscribe("/user/topic/answer", onAnswerUpdate)
 
         stompClient.subscribe("/user/topic/gamemaster", (_) => {

@@ -92,13 +92,14 @@ public class MessageController {
         }
 
         AbstractQuestion<?> question = this.game.getSelectedQuestion().getQuestion();
+
         // TODO: This can be checked better
+        Answer<?> result = game.getSelectedQuestion().getQuestion().addAnswer(answering, answer.getAnswer());
         if (question.getType().equals(Type.NORMAL)) {
             this.notifications.sendOnBuzzer();
+            this.notifications.setBuzzer(principal.getName(), false);
+            this.notifications.sendAnswer(null, result);
         }
-        this.notifications.setBuzzer(principal.getName(), false);
-
-        Answer<?> result = game.getSelectedQuestion().getQuestion().addAnswer(answering, answer.getAnswer());
 
         UUID master = this.game.getMaster();
 
@@ -124,17 +125,18 @@ public class MessageController {
     }
 
     @MessageMapping("/reveal-answer")
-    @SendTo("/topic/reveal-answer")
-    public Answer<?> revealAnswer(String player, UserPrincipal principal) {
+    public void revealAnswer(String player, UserPrincipal principal) {
         if (!principal.getID().equals(this.game.getMaster())) {
-            return null;
+            return;
         }
 
-        if(game.getSelectedQuestion().getQuestion().getState().ordinal() < QuestionState.LOCK_QUESTION.ordinal()) {
-            return null;
+        if (game.getSelectedQuestion().getQuestion().getState().ordinal() < QuestionState.LOCK_QUESTION.ordinal()) {
+            return;
         }
 
-        return game.getSelectedQuestion().getQuestion().getAnswerByPlayer(game.getPlayerByName(player));
+        notifications.sendAnswer(null, game.getSelectedQuestion().getQuestion().getAnswerByPlayer(game.getPlayerByName(player)));
+
+        return;
     }
 
     @MessageMapping("/question")
