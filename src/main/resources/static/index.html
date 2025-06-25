@@ -22,6 +22,53 @@
             <div class="col col-10">
                 <div class="container" id="board">
                 </div>
+
+                <div class="row">
+                    <div class="col" id="question-wrapper">
+                        <h2 id="question-header"></h2>
+                        <div id="question"></div>
+                        <div id="question-data"></div>
+                        <div id="answer"></div>
+                    </div>
+
+                    <div class="col">
+
+                        <div id="player-area">
+                            <div id="question-answer-tool-wrapper" class="text-end">
+                                <img src="./img/disbutton.png" class="img-fluid ms-auto" id="buzzer"
+                                    style="border-radius: 100%">
+                                <textarea class="form-control" id="answer-textfield"
+                                    placeholder="Antwort..."></textarea>
+                                <input type="number" class="form-control" id="answer-numberfield"
+                                    placeholder="Antwort...">
+                                <table class="table table-bordered table-striped table-light minimal-table"
+                                    id="answer-sort">
+                                </table>
+                            </div>
+                        </div>
+
+
+                        <div id="gamemaster-area" style="display: none">
+                            <button class="btn btn-success" style="width: 100%;" onclick="startGame()">Spiel
+                                starten</button>
+
+                            <button class="btn btn-warning my-1" style="width: 100%;" onclick="reveal(true)"
+                                id="reveal-more">Reveal
+                                More</button>
+                            <button class="btn btn-warning my-1" style="width: 100%;" onclick="reveal(false)"
+                                id="reveal-less">Reveal Less</button>
+                        </div>
+
+                        <table class="table table-bordered table-striped table-light" id="player-answer-table">
+                            <tbody id="player-answers">
+                            </tbody>
+                        </table>
+                        <table class="table table-bordered table-striped table-light" id="gamemaster-answer-table">
+                            <tbody id="gamemaster-answers">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             <div class="col">
                 <table class="table table-bordered table-striped table-light">
@@ -41,44 +88,6 @@
                     <button class="btn btn-danger btn-lg btn-block my-1" onclick="becomeGameMaster()"
                         id="gamemaster">Gamemaster werden!</button>
                 </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col col-8">
-                <div id="question-wrapper">
-                    <h2 id="question-header"></h2>
-                    <div id="question"></div>
-                    <div id="question-data"></div>
-                    <div id="answer"></div>
-                </div>
-            </div>
-            <div class="col" id="player-area">
-                <div id="question-answer-tool-wrapper" class="text-end">
-                    <img src="./img/disbutton.png" class="img-fluid ms-auto" id="buzzer" style="border-radius: 100%">
-                    <textarea class="form-control" id="answer-textfield" placeholder="Antwort..."></textarea>
-                    <input type="number" class="form-control" id="answer-numberfield" placeholder="Antwort...">
-                    <table class="table table-bordered table-striped table-light minimal-table" id="answer-sort">
-                    </table>
-                </div>
-                <table class="table table-bordered table-striped table-light" id="player-answer-table">
-                    <tbody id="player-answers">
-                    </tbody>
-                </table>
-            </div>
-
-
-            <div class="col" id="gamemaster-area" style="display: none">
-                <button class="btn btn-success" style="width: 100%;" onclick="startGame()">Spiel starten</button>
-
-                <button class="btn btn-warning my-1" style="width: 100%;" onclick="reveal(true)" id="reveal-more">Reveal
-                    More</button>
-                <button class="btn btn-warning my-1" style="width: 100%;" onclick="reveal(false)"
-                    id="reveal-less">Reveal Less</button>
-
-                <table class="table table-bordered table-striped table-light" id="gamemaster-answer-table">
-                    <tbody id="gamemaster-answers">
-                    </tbody>
-                </table>
             </div>
         </div>
 

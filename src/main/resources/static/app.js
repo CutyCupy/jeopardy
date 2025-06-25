@@ -310,9 +310,11 @@ function onQuestionUpdate(msg) {
     var update = JSON.parse(msg.body);
     if (!update.question) {
         resetQuestion();
+        board.style.display = null;
         return;
     }
     hideQuestion();
+    board.style.display = 'none';
 
     toDisplay = [];
 
