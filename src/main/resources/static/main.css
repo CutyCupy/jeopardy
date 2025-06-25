@@ -5,6 +5,10 @@ body {
     color: white;
 }
 
+#player-area, #gamemaster-area {
+    width: 100%;
+}
+
 #question {
     font-size: x-large;
 }
@@ -13,13 +17,6 @@ body {
     font-size: x-large;
 }
 
-.minimal-table {
-    margin-left: auto;
-    width: fit-content;
-    td {
-        align-content: center;
-    }
-}
 
 svg {
     transform: rotate(-90deg);
