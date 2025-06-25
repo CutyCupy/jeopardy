@@ -23,6 +23,7 @@ const gamemasterArea = document.getElementById("gamemaster-area")
 
 const questionWrapper = document.getElementById("question-wrapper");
 const questionAnswerToolWrapper = document.getElementById("question-answer-tool-wrapper");
+var submitButton = document.getElementById("submit-button");
 
 const alertPlaceholder = document.getElementById('alert');
 
@@ -261,9 +262,6 @@ function onAnswerUpdate(msg) {
     judgeCell.appendChild(revealButton);
 }
 
-function onSortAnswerChange() {
-    submitAnswerFactory(Array.from(answerSort.rows).map((v) => v.entry))();
-}
 
 function onLobbyUpdate(msg) {
     const q = JSON.parse(msg.body);
@@ -349,10 +347,21 @@ function onQuestionUpdate(msg) {
                 toDisplay.push(buzzer);
                 break;
             case 'TEXT':
+                updateSubmitButton(() => {
+                    submitAnswer(answerText.value);
+                });
+
                 toDisplay.push(answerText);
+                toDisplay.push(submitButton);
                 break;
             case 'ESTIMATE':
+                updateSubmitButton(() => {
+                    submitAnswer(answerNumber.value);
+                });
+
+
                 toDisplay.push(answerNumber);
+                toDisplay.push(submitButton);
                 break;
             case 'VIDEO':
                 toDisplay.push(answerText);
@@ -364,6 +373,11 @@ function onQuestionUpdate(msg) {
                     }
                     toDisplay.push(question_data);
                 }
+                updateSubmitButton(() => {
+                    submitAnswer(answerText.value);
+                });
+
+                toDisplay.push(submitButton);
                 break;
             case 'SORT':
                 if (!showQuestionData) {
@@ -381,6 +395,7 @@ function onQuestionUpdate(msg) {
                         entryCell.innerText = entry;
 
                         moveCell = row.insertCell(1);
+                        moveCell.style.width = 'fit-content';
                         var upButton = document.createElement("button");
                         var downButton = document.createElement("button")
 
@@ -404,8 +419,6 @@ function onQuestionUpdate(msg) {
 
                             answerSort.tBodies[0].insertBefore(rowB, rowA)
                             answerSort.tBodies[0].insertBefore(rowA, rowB.nextSibling);
-
-                            onSortAnswerChange();
                         }
 
                         upButton.classList.add("btn", "btn-success", "mx-1");
@@ -421,7 +434,13 @@ function onQuestionUpdate(msg) {
                         moveCell.appendChild(downButton);
                     }
                 }
+
+                updateSubmitButton(() => {
+                    submitAnswer(Array.from(answerSort.rows).map((v) => v.entry));
+                });
+
                 toDisplay.push(answerSort);
+                toDisplay.push(submitButton);
                 break;
         }
     }
@@ -445,19 +464,11 @@ function onQuestionUpdate(msg) {
                     case 'NORMAL':
                         updateBuzzerState(false);
                         break;
-                    case 'TEXT':
-                        answerText.dispatchEvent(new Event("input"));
-                        break;
-                    case 'ESTIMATE':
-                        answerNumber.dispatchEvent(new Event("input"));
-                        break;
                     case 'VIDEO':
-                        answerText.dispatchEvent(new Event("input"));
                         question_data.innerHTML = '';
                         question_data.replaceChildren();
-                        break;
-                    case 'SORT':
-                        onSortAnswerChange();
+                    default:
+                        submitButton.click();
                         break;
                 }
 
@@ -547,7 +558,9 @@ function hideQuestion() {
     Array.from(questionWrapper.children).forEach((v) => {
         v.style.display = 'none';
     });
-    Array.from(questionAnswerToolWrapper.children).forEach((v) => v.style.display = 'none');
+    Array.from(questionAnswerToolWrapper.children).forEach((v) => {
+        v.style.display = 'none';
+    });
 
 }
 function resetQuestion() {
@@ -556,6 +569,9 @@ function resetQuestion() {
         v.innerText = '';
     });
     Array.from(questionAnswerToolWrapper.children).forEach((v) => {
+        if (v.id == submitButton.id) {
+            return;
+        }
         v.value = '';
         v.replaceChildren();
     });
@@ -590,7 +606,9 @@ function startGame() {
 function updateBuzzerState(state) {
     const newBuzzer = buzzer.cloneNode(true);
     if (state) {
-        newBuzzer.addEventListener('click', submitAnswerFactory(""));
+        newBuzzer.addEventListener('click', () => {
+            submitAnswer("");
+        });
         newBuzzer.src = "./img/enabutton.png"
     } else {
         newBuzzer.src = "./img/disbutton.png"
@@ -600,8 +618,16 @@ function updateBuzzerState(state) {
     buzzer = newBuzzer;
 }
 
-function submitAnswerFactory(answer) {
-    return function () { stompClient.send("/app/submit-answer", {}, JSON.stringify({ answer })) };
+function updateSubmitButton(listener) {
+    const newSubmit = submitButton.cloneNode(true);
+    newSubmit.addEventListener('click', listener);
+
+    submitButton.parentNode.replaceChild(newSubmit, submitButton);
+    submitButton = newSubmit;
+}
+
+function submitAnswer(answer) {
+    stompClient.send("/app/submit-answer", {}, JSON.stringify({ answer }));
 }
 
 function callbackClosure(i, callback) {
