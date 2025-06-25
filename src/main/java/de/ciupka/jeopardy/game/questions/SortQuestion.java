@@ -37,14 +37,39 @@ public class SortQuestion extends AbstractQuestion<String[]> implements Evaluata
 
     @Override
     public void evaluateAnswers() {
+        int max = -1;
+        List<Player> right = new ArrayList<>();
+
+        String[] correctAnswer = getAnswer();
+
         for (Answer<String[]> answer : getAnswers()) {
-            if (Arrays.equals(answer.getAnswer(), getAnswer())) {
-                answer.getPlayer().updateScore(getPoints());
-            } else {
-                answer.getPlayer().updateScore(getWrongPoints());
+            int corrects = 0;
+            String[] ans = answer.getAnswer();
+            for (int i = 0; i < ans.length; i++) {
+                if (ans[i].equals(correctAnswer[i])) {
+                    corrects++;
+                }
             }
+            if (corrects < max) {
+                answer.getPlayer().updateScore(getWrongPoints());
+                continue;
+            }
+            if (corrects > max) {
+                max = corrects;
+                for (Player p : right) {
+                    p.updateScore(getWrongPoints());
+                }
+
+                right.clear();
+            }
+
+            right.add(answer.getPlayer());
         }
-        setAnswered(true);
+
+        for (Player p : right) {
+            p.updateScore(getPoints()); // TODO: Maybe use a factor for the Points?
+        }
+
     }
 
     public String[] getOptions() {
