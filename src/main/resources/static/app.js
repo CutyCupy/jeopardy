@@ -381,62 +381,29 @@ function onQuestionUpdate(msg) {
                 break;
             case 'SORT':
                 if (!showQuestionData) {
-                    const rowCount = answerSort.rows.length;
-                    for (var i = 0; i < rowCount; i++) {
-                        answerSort.deleteRow(0);
-                    }
+                    answerSort.replaceChildren();
 
                     for (var entry of update.question.options) {
-                        var row = answerSort.insertRow(-1);
+                        const row = document.createElement("div");
+                        row.classList.add("bg-white", "border", "border-4", "border-secondary", "p-2", "m-1", "text-center");
+
+                        row.style.color = 'black';
+
                         row.id = `sort:${entry}`
-                        row.entry = entry;
+                        row.innerText = entry;
 
-                        var entryCell = row.insertCell(0);
-                        entryCell.innerText = entry;
+                        row.addEventListener('drop', dropHandler);
+                        row.addEventListener('dragover', dragoverHandler);
+                        row.addEventListener('dragstart', dragstartHandler);
 
-                        moveCell = row.insertCell(1);
-                        moveCell.style.width = 'fit-content';
-                        var upButton = document.createElement("button");
-                        var downButton = document.createElement("button")
+                        row.draggable = true;
 
-                        var eventListenerFactory = (id, up) => function () {
-                            var rows = Array.from(answerSort.rows);
-                            var idx = rows.findIndex((v) => v.id == id);
-                            var other = idx;
-
-                            if (up) {
-                                idx--;
-                            } else {
-                                other++;
-                            }
-
-                            if (idx < 0 || other >= rows.length) {
-                                return;
-                            }
-
-                            var rowA = answerSort.rows[idx];
-                            var rowB = answerSort.rows[other]
-
-                            answerSort.tBodies[0].insertBefore(rowB, rowA)
-                            answerSort.tBodies[0].insertBefore(rowA, rowB.nextSibling);
-                        }
-
-                        upButton.classList.add("btn", "btn-success", "mx-1");
-                        upButton.innerHTML = makeIcon("caret-up-fill")
-                        upButton.addEventListener('click', eventListenerFactory(row.id, true))
-
-                        downButton.classList.add("btn", "btn-danger", "mx-1");
-                        downButton.innerHTML = makeIcon("caret-down-fill")
-                        downButton.addEventListener('click', eventListenerFactory(row.id, false))
-
-
-                        moveCell.appendChild(upButton);
-                        moveCell.appendChild(downButton);
+                        answerSort.appendChild(row);
                     }
                 }
 
                 updateSubmitButton(() => {
-                    submitAnswer(Array.from(answerSort.rows).map((v) => v.entry));
+                    submitAnswer(Array.from(answerSort.children).map((v) => v.innerText));
                 });
 
                 toDisplay.push(answerSort);
@@ -666,3 +633,29 @@ function showAlert(type, message, duration) {
 
 connect();
 hideQuestion();
+
+
+function dragstartHandler(ev) {
+    ev.dataTransfer.setData("text", ev.target.id);
+}
+
+function dragoverHandler(ev) {
+    ev.preventDefault();
+}
+
+function dropHandler(ev) {
+    ev.preventDefault();
+    const data = ev.dataTransfer.getData("text");
+    swapElements(document.getElementById(data), ev.target)
+}
+
+function swapElements(el1, el2) {
+    const parent1 = el1.parentNode;
+    const parent2 = el2.parentNode;
+
+    const next1 = el1.nextSibling;
+    const next2 = el2.nextSibling;
+
+    parent1.insertBefore(el2, next1);
+    parent2.insertBefore(el1, next2);
+}
