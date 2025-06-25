@@ -25,13 +25,8 @@ public class SortQuestion extends AbstractQuestion<String[]> implements Evaluata
     }
 
     @Override
-    public boolean allowMultipleAnswer() {
-        return true;
-    }
-
-    @Override
     public boolean allowWrongAnswer() {
-        return false;
+        return true;
     }
 
     @Override

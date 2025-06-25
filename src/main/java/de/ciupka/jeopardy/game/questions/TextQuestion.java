@@ -16,10 +16,6 @@ public class TextQuestion extends AbstractQuestion<String> {
         return true;
     }
 
-    @Override
-    public boolean allowMultipleAnswer() {
-        return false;
-    }
 
     @Override
     public Answer<String> parseAnswer(JsonNode node, Player player) {

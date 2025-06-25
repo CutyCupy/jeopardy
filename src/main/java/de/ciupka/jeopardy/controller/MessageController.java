@@ -119,11 +119,6 @@ public class MessageController {
 
         this.game.answerQuestion(this.game.getPlayerByName(answer.getPlayerName()), !answer.isCorrect());
 
-        if (!this.game.getSelectedQuestion().getQuestion().allowMultipleAnswer() && answer.isCorrect()) {
-            this.game.closeQuestion();
-            this.notifications.sendQuestionUpdate(null);
-        }
-
         this.notifications.sendLobbyUpdate(null);
         this.notifications.sendBoardUpdate(null);
     }

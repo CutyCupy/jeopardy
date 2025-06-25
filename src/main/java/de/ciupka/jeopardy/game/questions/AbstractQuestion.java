@@ -60,8 +60,6 @@ public abstract class AbstractQuestion<T> {
 
     public abstract boolean allowWrongAnswer();
 
-    public abstract boolean allowMultipleAnswer();
-
     public abstract Answer<T> parseAnswer(JsonNode node, Player player);
 
     public QuestionState getState() {

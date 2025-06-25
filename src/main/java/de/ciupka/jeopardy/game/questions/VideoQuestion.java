@@ -18,13 +18,8 @@ public class VideoQuestion extends AbstractQuestion<String> {
     }
 
     @Override
-    public boolean allowMultipleAnswer() {
-        return true;
-    }
-
-    @Override
     public boolean allowWrongAnswer() {
-        return false;
+        return true;
     }
 
     @Override

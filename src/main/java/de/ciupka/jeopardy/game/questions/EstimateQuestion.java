@@ -14,11 +14,6 @@ public class EstimateQuestion extends AbstractQuestion<Integer> implements Evalu
     }
 
     @Override
-    public boolean allowMultipleAnswer() {
-        return true;
-    }
-
-    @Override
     public boolean allowWrongAnswer() {
         return true;
     }
