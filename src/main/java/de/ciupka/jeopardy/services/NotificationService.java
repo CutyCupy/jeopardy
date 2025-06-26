@@ -1,15 +1,20 @@
 package de.ciupka.jeopardy.services;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-import de.ciupka.jeopardy.controller.messages.Answer;
+import de.ciupka.jeopardy.controller.messages.AnswerUpdate;
+import de.ciupka.jeopardy.controller.messages.AnswerUpdateType;
 import de.ciupka.jeopardy.controller.messages.BoardUpdate;
 import de.ciupka.jeopardy.controller.messages.SelectedQuestion;
 import de.ciupka.jeopardy.game.GameService;
+import de.ciupka.jeopardy.game.questions.AbstractQuestion;
+import de.ciupka.jeopardy.game.questions.Answer;
 
 /**
  * This service provides utility methods for communication with all or specific
@@ -38,48 +43,57 @@ public class NotificationService {
         this.messagingTemplate = messagingTemplate;
     }
 
-    private void message(final String userId, String topic, Object message) {
-        if (userId != null) {
-            messagingTemplate.convertAndSendToUser(userId, topic, message);
+    private void message(String topic, Object message, String... users) {
+        if (users.length > 0) {
+            for (String userId : users) {
+                messagingTemplate.convertAndSendToUser(userId, topic, message);
+            }
             return;
         }
         messagingTemplate.convertAndSend(topic, message);
     }
 
-    public void sendLobbyUpdate(final String userId) {
-        this.message(userId, LOBBY_UPDATE, this.game.getLobby());
+    public void sendLobbyUpdate(final String... users) {
+        this.message(LOBBY_UPDATE, this.game.getLobby(), users);
     }
 
-    public void sendBoardUpdate(final String userId) {
-        this.message(userId, BOARD_UPDATE,
+    public void sendBoardUpdate(final String... users) {
+        this.message(BOARD_UPDATE,
                 new BoardUpdate(
                         this.game.getBoard(),
                         this.game.getSelectedQuestion(),
-                        this.game.getCurrentPlayer()));
+                        this.game.getCurrentPlayer()),
+                users);
     }
 
-    public void sendQuestionUpdate(final String userId) {
+    public void sendQuestionUpdate(final String... users) {
         SelectedQuestion question = this.game.getSelectedQuestion();
         if (question == null) {
-            this.message(userId, QUESTION_UPDATE, new SelectedQuestion());
+            this.message(QUESTION_UPDATE, new SelectedQuestion(), users);
             return;
         }
-        this.message(userId, QUESTION_UPDATE, question);
+        this.message(QUESTION_UPDATE, question, users);
     }
 
-    public void sendGameMasterUpdate(final String userId) {
-        this.message(userId, GAMEMASTER_UPDATE, this.game.getMaster() != null);
+    public void sendGameMasterUpdate(final String... users) {
+        this.message(GAMEMASTER_UPDATE, this.game.getMaster() != null, users);
     }
 
-    public void setBuzzer(String userId, boolean value) {
-        this.message(userId, BUZZER_UPDATE, value);
+    // TODO: Change to setAnswerControls oder so ...
+    public void setBuzzer(boolean value, final String... users) {
+        this.message(BUZZER_UPDATE, value, users);
     }
 
     public void sendOnBuzzer() {
-        this.message(null, ON_BUZZER, new HashMap<>());
+        this.message(ON_BUZZER, new HashMap<>());
     }
 
-    public void sendAnswer(String userId, Answer<?> answer) {
-        this.message(userId, ANSWER, answer);
+    public void sendAnswers(AnswerUpdateType type, final String... users) {
+        AbstractQuestion<?> question = game.getSelectedQuestion().getQuestion();
+
+        this.message(ANSWER,
+                question.getAnswers().stream()
+                        .map((a) -> question.getAnswerUpdate(a, type == null ? a.getUpdateType() : type)).toList(),
+                users);
     }
 }

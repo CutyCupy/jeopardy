@@ -1,13 +1,16 @@
 package de.ciupka.jeopardy.game.questions;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import de.ciupka.jeopardy.controller.messages.Answer;
+import de.ciupka.jeopardy.controller.messages.AnswerUpdate;
+import de.ciupka.jeopardy.controller.messages.AnswerUpdateType;
 import de.ciupka.jeopardy.game.Player;
 
 public class SortQuestion extends AbstractQuestion<SortOption[]>
@@ -30,9 +33,27 @@ public class SortQuestion extends AbstractQuestion<SortOption[]>
     }
 
     @Override
-    public Answer<SortOption[]> parseAnswer(JsonNode node, Player player) {
+    protected Answer<SortOption[]> parseAnswer(JsonNode node, Player player) {
         ObjectMapper mapper = new ObjectMapper();
         return new Answer<SortOption[]>(player, mapper.convertValue(node, SortOption[].class));
+    }
+
+    @Override
+    public AnswerUpdate getAnswerUpdate(Answer<?> answer, AnswerUpdateType type) {
+        if (!(answer.getAnswer() instanceof SortOption[])) {
+            return null;
+        }
+        SortOption[] value = (SortOption[]) answer.getAnswer();
+        switch (type) {
+            case FULL_ANSWER:
+                return new AnswerUpdate(answer.getPlayer().getName(),
+                        Arrays.stream(value).map(Object::toString).collect(Collectors.joining(", ")));
+            case SHORT_ANSWER:
+                return new AnswerUpdate(answer.getPlayer().getName(),
+                        Arrays.stream(value).map(SortOption::getName).collect(Collectors.joining(", ")));
+            default:
+                return super.getAnswerUpdate(answer, type);
+        }
     }
 
     @Override

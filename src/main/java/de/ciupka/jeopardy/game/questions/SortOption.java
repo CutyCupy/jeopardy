@@ -1,5 +1,7 @@
 package de.ciupka.jeopardy.game.questions;
 
+import java.text.DecimalFormat;
+
 public class SortOption {
 
     private String name;
@@ -14,7 +16,6 @@ public class SortOption {
         this.value = value;
     }
 
-    
     public void setName(String name) {
         this.name = name;
     }
@@ -27,5 +28,10 @@ public class SortOption {
         return value;
     }
 
+    @Override
+    public String toString() {
+        DecimalFormat df = new DecimalFormat("0.####");
+        return String.format("%s (%s)", name, df.format(value));
+    }
 
 }

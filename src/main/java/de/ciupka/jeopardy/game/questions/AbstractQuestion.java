@@ -7,7 +7,8 @@ import java.util.Optional;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 
-import de.ciupka.jeopardy.controller.messages.Answer;
+import de.ciupka.jeopardy.controller.messages.AnswerUpdate;
+import de.ciupka.jeopardy.controller.messages.AnswerUpdateType;
 import de.ciupka.jeopardy.game.Player;
 
 public abstract class AbstractQuestion<T> {
@@ -60,7 +61,16 @@ public abstract class AbstractQuestion<T> {
 
     public abstract boolean allowWrongAnswer();
 
-    public abstract Answer<T> parseAnswer(JsonNode node, Player player);
+    protected abstract Answer<T> parseAnswer(JsonNode node, Player player);
+
+    public AnswerUpdate getAnswerUpdate(Answer<?> answer, AnswerUpdateType type) {
+        switch (type) {
+            case SHORT_ANSWER, FULL_ANSWER:
+                return new AnswerUpdate(answer.getPlayer().getName(), answer.getAnswer().toString());
+            default:
+                return new AnswerUpdate(answer.getPlayer().getName(), null);
+        }
+    }
 
     public QuestionState getState() {
         return state;
@@ -88,7 +98,7 @@ public abstract class AbstractQuestion<T> {
         return existing.isPresent() ? existing.get() : null;
     }
 
-    public Answer<T> addAnswer(Player p, JsonNode answer) {
+    public void addAnswer(Player p, JsonNode answer) {
         Optional<Answer<T>> existing = answers.stream().filter((a) -> a.getPlayer().equals(p))
                 .findFirst();
 
@@ -96,9 +106,8 @@ public abstract class AbstractQuestion<T> {
 
         if (existing.isPresent()) {
             existing.get().setAnswer(newAnswer.getAnswer());
-            return existing.get();
+            return;
         }
         answers.add(newAnswer);
-        return newAnswer;
     }
 }

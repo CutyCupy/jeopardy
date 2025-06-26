@@ -250,4 +250,8 @@ public class GameService {
 
         return false;
     }
+
+    public String[] getPlayerIDs() {
+        return players.stream().map((p) -> p.getUuid().toString()).toArray(String[]::new);
+    }
 }

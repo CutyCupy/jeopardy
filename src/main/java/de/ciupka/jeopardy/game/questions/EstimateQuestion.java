@@ -5,7 +5,6 @@ import java.util.List;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import de.ciupka.jeopardy.controller.messages.Answer;
 import de.ciupka.jeopardy.game.Player;
 
 public class EstimateQuestion extends AbstractQuestion<Integer> implements Evaluatable<Integer> {
@@ -19,7 +18,7 @@ public class EstimateQuestion extends AbstractQuestion<Integer> implements Evalu
     }
 
     @Override
-    public Answer<Integer> parseAnswer(JsonNode node, Player player) {
+    protected Answer<Integer> parseAnswer(JsonNode node, Player player) {
         return new Answer<Integer>(player, node.asInt());
     }
 
@@ -50,4 +49,5 @@ public class EstimateQuestion extends AbstractQuestion<Integer> implements Evalu
             p.updateScore(getPoints());
         }
     }
+
 }
