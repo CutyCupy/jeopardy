@@ -33,8 +33,8 @@ public class WebSocketEventListener {
         UserPrincipal up = (UserPrincipal) user;
 
         if (game.onDisconnect(up.getID())) {
-            notifications.sendLobbyUpdate(null);
-            notifications.sendGameMasterUpdate(null);
+            notifications.sendLobbyUpdate();
+            notifications.sendGameMasterUpdate();
         }
     }
 }

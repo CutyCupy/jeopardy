@@ -1,24 +1,25 @@
 package de.ciupka.jeopardy.controller;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
 
 import de.ciupka.jeopardy.configs.UserPrincipal;
-import de.ciupka.jeopardy.controller.messages.Answer;
 import de.ciupka.jeopardy.controller.messages.AnswerEvaluation;
+import de.ciupka.jeopardy.controller.messages.AnswerUpdateType;
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
-import de.ciupka.jeopardy.controller.messages.SendAnswer;
+import de.ciupka.jeopardy.controller.messages.SubmittedAnswer;
 import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
+import de.ciupka.jeopardy.game.questions.Answer;
 import de.ciupka.jeopardy.game.questions.Evaluatable;
-import de.ciupka.jeopardy.game.questions.Type;
 import de.ciupka.jeopardy.game.questions.QuestionState;
+import de.ciupka.jeopardy.game.questions.Type;
 import de.ciupka.jeopardy.services.NotificationService;
 
 /**
@@ -64,7 +65,7 @@ public class MessageController {
          * In general it might be smart to also send the 'reason' for a lobby update
          * with extra data based on reasoning.
          */
-        notifications.sendLobbyUpdate(null);
+        notifications.sendLobbyUpdate();
         if (game.isActive()) {
             notifications.sendBoardUpdate(principal.getName());
             notifications.sendQuestionUpdate(principal.getName());
@@ -81,11 +82,11 @@ public class MessageController {
 
         this.game.start();
 
-        this.notifications.sendBoardUpdate(null);
+        this.notifications.sendBoardUpdate();
     }
 
     @MessageMapping("/submit-answer")
-    public boolean submitAnswer(SendAnswer answer, UserPrincipal principal) {
+    public boolean submitAnswer(SubmittedAnswer answer, UserPrincipal principal) {
         Player answering = this.game.getPlayerByID(principal.getID());
         if (answering == null) {
             return false;
@@ -93,18 +94,16 @@ public class MessageController {
 
         AbstractQuestion<?> question = this.game.getSelectedQuestion().getQuestion();
 
+        question.addAnswer(answering, answer.getAnswer());
+
         // TODO: This can be checked better
-        Answer<?> result = game.getSelectedQuestion().getQuestion().addAnswer(answering, answer.getAnswer());
         if (question.getType().equals(Type.NORMAL)) {
             this.notifications.sendOnBuzzer();
-            this.notifications.setBuzzer(principal.getName(), false);
-            this.notifications.sendAnswer(null, result);
+            this.notifications.setBuzzer(false, principal.getName());
         }
 
-        UUID master = this.game.getMaster();
+        this.notifications.sendAnswers();
 
-        this.notifications.sendAnswer(master.toString(),
-                result);
         return false;
     }
 
@@ -120,8 +119,8 @@ public class MessageController {
 
         this.game.answerQuestion(this.game.getPlayerByName(answer.getPlayerName()), !answer.isCorrect());
 
-        this.notifications.sendLobbyUpdate(null);
-        this.notifications.sendBoardUpdate(null);
+        this.notifications.sendLobbyUpdate();
+        this.notifications.sendBoardUpdate();
     }
 
     @MessageMapping("/reveal-answer")
@@ -130,11 +129,17 @@ public class MessageController {
             return;
         }
 
-        if (game.getSelectedQuestion().getQuestion().getState().ordinal() < QuestionState.LOCK_QUESTION.ordinal()) {
+        AbstractQuestion<?> question = game.getSelectedQuestion().getQuestion();
+
+        if (question.getState().ordinal() < QuestionState.LOCK_QUESTION.ordinal()) {
             return;
         }
 
-        notifications.sendAnswer(null, game.getSelectedQuestion().getQuestion().getAnswerByPlayer(game.getPlayerByName(player)));
+        Answer<?> answer = question.getAnswerByPlayer(game.getPlayerByName(player));
+
+        answer.setUpdateType(AnswerUpdateType.SHORT_ANSWER);
+
+        notifications.sendAnswers();
 
         return;
     }
@@ -152,8 +157,8 @@ public class MessageController {
             return "Fehler bei der Auswahl der Frage!";
         }
 
-        this.notifications.sendBoardUpdate(null);
-        this.notifications.sendQuestionUpdate(null);
+        this.notifications.sendBoardUpdate();
+        this.notifications.sendQuestionUpdate();
 
         return null;
     }
@@ -163,7 +168,7 @@ public class MessageController {
     public boolean setGameMaster(UserPrincipal principal) {
         this.game.setMaster(principal.getID());
 
-        this.notifications.sendGameMasterUpdate(null);
+        this.notifications.sendGameMasterUpdate();
 
         return true;
     }
@@ -181,7 +186,7 @@ public class MessageController {
         if (worked) {
             if (more && question.getState().equals(QuestionState.SHOW_ANSWER) && question instanceof Evaluatable) {
                 ((Evaluatable<?>) question).evaluateAnswers();
-                this.notifications.sendLobbyUpdate(null);
+                this.notifications.sendLobbyUpdate();
             }
         } else {
             if (question.getState().equals(QuestionState.HIDDEN)) {
@@ -189,11 +194,11 @@ public class MessageController {
             } else {
                 game.closeQuestion();
             }
-            this.notifications.sendLobbyUpdate(null);
-            this.notifications.sendBoardUpdate(null);
+            this.notifications.sendLobbyUpdate();
+            this.notifications.sendBoardUpdate();
         }
 
-        this.notifications.sendQuestionUpdate(null);
+        this.notifications.sendQuestionUpdate();
     }
 
 }

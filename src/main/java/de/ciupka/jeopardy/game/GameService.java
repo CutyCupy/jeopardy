@@ -12,6 +12,7 @@ import de.ciupka.jeopardy.controller.messages.SelectedQuestion;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 import de.ciupka.jeopardy.game.questions.EstimateQuestion;
 import de.ciupka.jeopardy.game.questions.Question;
+import de.ciupka.jeopardy.game.questions.SortOption;
 import de.ciupka.jeopardy.game.questions.SortQuestion;
 import de.ciupka.jeopardy.game.questions.TextQuestion;
 import de.ciupka.jeopardy.game.questions.VideoQuestion;
@@ -31,77 +32,66 @@ public class GameService {
 
         this.board = new Category[] {
                 new Category("Twitch",
-                        new EstimateQuestion("Wie viele Kontinente gibt es auf der Erde?", 100,
-                                7),
-                        new Question("Welcher Planet ist der dritte von der Sonne?", 200,
-                                "Die Erde"),
+                        new EstimateQuestion(
+                                "Wieviele Nachrichten habe ich in Chats im Mai 2025 von Streamern aus unserer Freundesgruppe geschrieben? (Sleep, Chris, Lasse, Leonie, Lari, Selina)",
+                                100,
+                                88 + 16 + 613 + 1703 + 14 + 308),
+                        new Question("Wie teuer ist ein Tier-3 Sub aktuell?", 400,
+                                "19,99€ (zumindest wenn ich bei Attix jetzt Tier-3 subben würde)"),
+                        new SortQuestion(
+                                "Ordne die folgenden Streamer basierend auf ihren Subs (von den Meisten zu den Wenigsten)",
+                                700,
+                                new SortOption[] {
+                                        new SortOption("Papaplatte", 5000),
+                                        new SortOption("NoWay4U_Sir", 4000),
+                                        new SortOption("Gronkh", 3000),
+                                        new SortOption("Tolkin", 2000),
+                                        new SortOption("RvNxMango", 1000),
+                                        new SortOption("Mahluna", 0000)
+                                }),
                         new TextQuestion(
-                                "Welcher deutsche Bundeskanzler leitete die Wiedervereinigung 1990?",
-                                300,
-                                "Helmut Kohl"),
-                        new VideoQuestion("Was passiert als nächstes?", 600,
-                                "hf098o", "i21afv"),
-                        new SortQuestion("Sortiere die Zahlen aufsteigend!",
+                                "Welches Emote wurde 2021 aufgrund von kontroversen Tweets des 'Originals' entfernt?",
                                 1000,
-                                new String[]{
-                                    "1", "2", "3", "4", "5", "6", "7", "8",
-                                })),
-
+                                "PogChamp")),
                 new Category("Valorant",
-                        new Question("Wer spielt Harry Potter in den Filmen?", 100,
-                                "Daniel Radcliffe"),
-                        new Question("Wie heißt der fiktive Kontinent in Game of Thrones?", 200,
-                                "Westeros"),
-                        new Question("In welchem Film sagt ein Roboter „Ich komme wieder“?",
-                                300, "Terminator"),
-                        new Question("Wer führte Regie bei Pulp Fiction?", 600,
-                                "Quentin Tarantino"),
-                        new Question("Wie heißt der Serienmörder in Das Schweigen der Lämmer?",
-                                1000,
-                                "Hannibal Lecter")),
+                        new Question("Wieviele Waffen gibt es in VALORANT?", 100, "18"),
+                        new SortQuestion(
+                                "Ordne die folgenden Waffen basierend auf ihre Magazingröße (von den Meisten zu den Wenigsten)",
+                                400,
+                                new SortOption[] {
+                                        new SortOption("Odin", 100),
+                                        new SortOption("Phantom", 30),
+                                        new SortOption("Vandal", 25),
+                                        new SortOption("Guardian", 12),
+                                        new SortOption("Sheriff", 6),
+                                        new SortOption("Operator", 5)
+                                }),
+                        new Question("Welcher Agent kommt aus Schweden?", 700, "Breach"),
+                        new EstimateQuestion(
+                                "Wieviel HP hat die Harbor Sphere (oder Smoke - ka wie man das Ding nennen soll)",
+                                1000, 500)),
 
                 new Category("League of Legends",
-                        new Question("Was misst man mit einem Thermometer?", 100, "Temperatur"),
-                        new Question("Wie viele Beine hat ein Insekt?", 200, "Sechs"),
-                        new Question("Wer formulierte die Relativitätstheorie?", 300,
-                                "Albert Einstein"),
-                        new Question("Wie lautet das Formelzeichen für elektrische Spannung?",
-                                600, "U"),
-                        new Question("Was bezeichnet der Begriff 'event horizon' in der Astronomie?",
-                                1000,
-                                "Den Rand eines Schwarzen Lochs")),
+                        new Question("Wieviele Schwänze hat Ahri?", 100, "9"),
+                        new EstimateQuestion("Wieviel Range hat Caitlyn?", 400, 650),
+                        new TextQuestion("Welchen Champion spielte Faker in seinem Pro Debüt?", 700, "Nidalee"),
+                        new VideoQuestion("Was passiert als nächstes?", 1000, "2dz8zb", "ga4ln4")),
 
                 new Category("Tierwelt",
-                        new Question("Wer sang Thriller?", 100, "Michael Jackson"),
-                        new Question("Welche Band besteht aus John, Paul, George und Ringo?",
-                                200, "Die Beatles"),
-                        new Question("Welches Instrument hat 88 Tasten?", 300, "Klavier"),
-                        new Question("Welcher Komponist war im 18. Jahrhundert als Wunderkind bekannt?",
-                                600,
-                                "Wolfgang Amadeus Mozart"),
-                        new Question("Welcher Künstler gewann 2024 den Grammy für 'Album des Jahres'?",
-                                1000,
-                                "Taylor Swift")),
-
-                new Category("Geographie",
-                        new Question("In welchem Land liegt Paris?", 100, "Frankreich"),
-                        new Question("Wie heißt die Hauptstadt von Italien?", 200, "Rom"),
-                        new Question("Welcher Fluss fließt durch Budapest?", 300, "Donau"),
-                        new Question("Welches ist das flächenmäßig größte Land der Welt?", 600,
-                                "Russland"),
-                        new Question("Welcher Staat grenzt an die meisten Länder?", 1000,
-                                "China")),
-
-                new Category("Sprache & Literatur",
-                        new Question("Wie viele Buchstaben hat das deutsche Alphabet (inkl. Umlaute und ß)?",
-                                100,
-                                "30"),
-                        new Question("Wer schrieb Faust?", 200, "Johann Wolfgang von Goethe"),
-                        new Question("Was ist ein Synonym für 'schnell'?", 300, "Rasch"),
-                        new Question("In welcher Sprache wurde Don Quijote ursprünglich geschrieben?",
-                                600, "Spanisch"),
-                        new Question("Welcher Autor schrieb Der Name der Rose?", 1000,
-                                "Umberto Eco"))
+                        new SortQuestion("Sortiere diese Tiere nach ihrer Größe (die Größten zuerst)", 100,
+                                new SortOption[] {
+                                        new SortOption("Elefant", 100),
+                                        new SortOption("Pferd", 80),
+                                        new SortOption("Schaf", 60),
+                                        new SortOption("Katze", 40),
+                                        new SortOption("Igel", 20),
+                                        new SortOption("Ameise", 10),
+                                }),
+                        new EstimateQuestion("Wieviel Kilogramm Krill ist ein Blauwal pro Tag im Schnitt?", 400,
+                                7000),
+                        new EstimateQuestion("Wie schnell war die schnellste aufgezeichnete Hauskatze (in km/h)?", 700,
+                                48),
+                        new Question("Wieviele Mägen hat eine Kuh?", 1000, "Vier")),
         };
     }
 
@@ -259,5 +249,9 @@ public class GameService {
         }
 
         return false;
+    }
+
+    public String[] getPlayerIDs() {
+        return players.stream().map((p) -> p.getUuid().toString()).toArray(String[]::new);
     }
 }

@@ -4,21 +4,24 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import de.ciupka.jeopardy.controller.messages.Answer;
+import de.ciupka.jeopardy.controller.messages.AnswerUpdate;
+import de.ciupka.jeopardy.controller.messages.AnswerUpdateType;
 import de.ciupka.jeopardy.game.Player;
 
-public class SortQuestion extends AbstractQuestion<String[]> implements Evaluatable<String[]> {
+public class SortQuestion extends AbstractQuestion<SortOption[]>
+        implements Evaluatable<SortOption[]> {
 
     private String[] options;
 
-    public SortQuestion(String question, int points, String[] answer) {
+    public SortQuestion(String question, int points, SortOption[] answer) {
         super(question, points, answer, Type.SORT);
 
-        List<String> options = new ArrayList<>(List.of(answer));
+        List<String> options = new ArrayList<>(List.of(answer).stream().map((t) -> t.getName()).toList());
         Collections.shuffle(options);
 
         this.options = options.toArray(new String[options.size()]);
@@ -30,9 +33,25 @@ public class SortQuestion extends AbstractQuestion<String[]> implements Evaluata
     }
 
     @Override
-    public Answer<String[]> parseAnswer(JsonNode node, Player player) {
+    protected Answer<SortOption[]> parseAnswer(JsonNode node, Player player) {
         ObjectMapper mapper = new ObjectMapper();
-        return new Answer<String[]>(player, mapper.convertValue(node, String[].class));
+        return new Answer<SortOption[]>(player, mapper.convertValue(node, SortOption[].class));
+    }
+
+    @Override
+    public List<AnswerUpdate> getAnswerUpdates() {
+        return getAnswers().stream().map((a) -> {
+            switch (a.getUpdateType()) {
+                case FULL_ANSWER:
+                    return new AnswerUpdate(a.getPlayer().getName(),
+                            Arrays.stream(a.getAnswer()).map(SortOption::toString).collect(Collectors.joining(", ")));
+                case SHORT_ANSWER:
+                    return new AnswerUpdate(a.getPlayer().getName(),
+                            Arrays.stream(a.getAnswer()).map(SortOption::getName).collect(Collectors.joining(", ")));
+                default:
+                    return new AnswerUpdate(a.getPlayer().getName(), null);
+            }
+        }).toList();
     }
 
     @Override
@@ -40,13 +59,13 @@ public class SortQuestion extends AbstractQuestion<String[]> implements Evaluata
         int max = -1;
         List<Player> right = new ArrayList<>();
 
-        String[] correctAnswer = getAnswer();
+        SortOption[] correctAnswer = getAnswer();
 
-        for (Answer<String[]> answer : getAnswers()) {
+        for (Answer<SortOption[]> answer : getAnswers()) {
             int corrects = 0;
-            String[] ans = answer.getAnswer();
+            SortOption[] ans = answer.getAnswer();
             for (int i = 0; i < ans.length; i++) {
-                if (ans[i].equals(correctAnswer[i])) {
+                if (ans[i].getName().equals(correctAnswer[i].getName())) {
                     corrects++;
                 }
             }
