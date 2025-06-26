@@ -88,12 +88,11 @@ public class NotificationService {
         this.message(ON_BUZZER, new HashMap<>());
     }
 
-    public void sendAnswers(AnswerUpdateType type, final String... users) {
+    public void sendAnswers(final String... users) {
         AbstractQuestion<?> question = game.getSelectedQuestion().getQuestion();
 
         this.message(ANSWER,
-                question.getAnswers().stream()
-                        .map((a) -> question.getAnswerUpdate(a, type == null ? a.getUpdateType() : type)).toList(),
+                question.getAnswerUpdates(),
                 users);
     }
 }

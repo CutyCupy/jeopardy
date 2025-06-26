@@ -8,7 +8,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import de.ciupka.jeopardy.controller.messages.AnswerUpdate;
-import de.ciupka.jeopardy.controller.messages.AnswerUpdateType;
 import de.ciupka.jeopardy.game.Player;
 
 public abstract class AbstractQuestion<T> {
@@ -63,13 +62,15 @@ public abstract class AbstractQuestion<T> {
 
     protected abstract Answer<T> parseAnswer(JsonNode node, Player player);
 
-    public AnswerUpdate getAnswerUpdate(Answer<?> answer, AnswerUpdateType type) {
-        switch (type) {
-            case SHORT_ANSWER, FULL_ANSWER:
-                return new AnswerUpdate(answer.getPlayer().getName(), answer.getAnswer().toString());
-            default:
-                return new AnswerUpdate(answer.getPlayer().getName(), null);
-        }
+    public List<AnswerUpdate> getAnswerUpdates() {
+        return answers.stream().map((a) -> {
+            switch (a.getUpdateType()) {
+                case SHORT_ANSWER, FULL_ANSWER:
+                    return new AnswerUpdate(a.getPlayer().getName(), a.getAnswer().toString());
+                default:
+                    return new AnswerUpdate(a.getPlayer().getName(), null);
+            }
+        }).toList();
     }
 
     public QuestionState getState() {

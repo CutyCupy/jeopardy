@@ -39,21 +39,19 @@ public class SortQuestion extends AbstractQuestion<SortOption[]>
     }
 
     @Override
-    public AnswerUpdate getAnswerUpdate(Answer<?> answer, AnswerUpdateType type) {
-        if (!(answer.getAnswer() instanceof SortOption[])) {
-            return null;
-        }
-        SortOption[] value = (SortOption[]) answer.getAnswer();
-        switch (type) {
-            case FULL_ANSWER:
-                return new AnswerUpdate(answer.getPlayer().getName(),
-                        Arrays.stream(value).map(Object::toString).collect(Collectors.joining(", ")));
-            case SHORT_ANSWER:
-                return new AnswerUpdate(answer.getPlayer().getName(),
-                        Arrays.stream(value).map(SortOption::getName).collect(Collectors.joining(", ")));
-            default:
-                return super.getAnswerUpdate(answer, type);
-        }
+    public List<AnswerUpdate> getAnswerUpdates() {
+        return getAnswers().stream().map((a) -> {
+            switch (a.getUpdateType()) {
+                case FULL_ANSWER:
+                    return new AnswerUpdate(a.getPlayer().getName(),
+                            Arrays.stream(a.getAnswer()).map(SortOption::toString).collect(Collectors.joining(", ")));
+                case SHORT_ANSWER:
+                    return new AnswerUpdate(a.getPlayer().getName(),
+                            Arrays.stream(a.getAnswer()).map(SortOption::getName).collect(Collectors.joining(", ")));
+                default:
+                    return new AnswerUpdate(a.getPlayer().getName(), null);
+            }
+        }).toList();
     }
 
     @Override

@@ -102,13 +102,8 @@ public class MessageController {
             this.notifications.setBuzzer(false, principal.getName());
         }
 
-        UUID master = this.game.getMaster();
+        this.notifications.sendAnswers();
 
-        this.notifications.sendAnswers(AnswerUpdateType.NO_ANSWER,
-                game.getPlayerIDs());
-
-        this.notifications.sendAnswers(AnswerUpdateType.SHORT_ANSWER,
-                master.toString());
         return false;
     }
 
@@ -144,7 +139,7 @@ public class MessageController {
 
         answer.setUpdateType(AnswerUpdateType.SHORT_ANSWER);
 
-        notifications.sendAnswers(null, game.getPlayerIDs());
+        notifications.sendAnswers();
 
         return;
     }

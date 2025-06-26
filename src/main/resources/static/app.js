@@ -198,23 +198,23 @@ function onAnswerUpdate(msg) {
     var answers = JSON.parse(msg.body);
 
     for (var answer of answers) {
-        const id = `answer:${answer.player}`;
-        var answerCell = document.getElementById(id);
-        if (answerCell) {
-            answerCell.innerText = answer.answer;
-            continue;
-        }
-
+        // TODO: RowID and AnswerID
+        const rowID = `row:${answer.player}`;
+        const nameID = `name:${answer.player}`;
+        const answerID = `answer:${answer.player}`;
+        const judgeID = `judge:${answer.player}`;
         var myAnswers = isGameMaster ? gamemasterAnswers : playerAnswers;
 
-        var row = myAnswers.insertRow(-1);
+        var row = document.getElementById(rowID) || myAnswers.insertRow(-1);
+        row.id = rowID;
 
-        var nameCell = row.insertCell(-1);
+        var nameCell = document.getElementById(nameID) || row.insertCell(-1);
+        nameCell.id = nameID
         nameCell.innerText = answer.player;
 
-        if (answers.findAny((v) => !!v.answer)) {
-            answerCell = row.insertCell(-1);
-            answerCell.id = id;
+        if (answers.find((v) => !!v.answer)) {
+            var answerCell = document.getElementById(answerID) || row.insertCell(1);
+            answerCell.id = answerID;
             answerCell.innerText = answer.answer;
         }
 
@@ -222,40 +222,43 @@ function onAnswerUpdate(msg) {
             continue;
         }
 
-        var judgeCell = row.insertCell(-1);
-        row.classList.add("text-center");
-
-        var correctButton = document.createElement("button");
-        var wrongButton = document.createElement("button");
-        var revealButton = document.createElement("button");
-
-        var eventListenerFactory = (correct) => function () {
-            stompClient.send("/app/answer", {}, JSON.stringify({
-                playerName: answer.player,
-                isCorrect: correct,
-            }))
-
-            wrongButton.disabled = true;
-            correctButton.disabled = true;
+        if(!document.getElementById(judgeID)) {
+            var judgeCell = row.insertCell(-1);
+            judgeCell.id = judgeID;
+            row.classList.add("text-center");
+    
+            var correctButton = document.createElement("button");
+            var wrongButton = document.createElement("button");
+            var revealButton = document.createElement("button");
+    
+            var eventListenerFactory = (correct) => function () {
+                stompClient.send("/app/answer", {}, JSON.stringify({
+                    playerName: answer.player,
+                    isCorrect: correct,
+                }))
+    
+                wrongButton.disabled = true;
+                correctButton.disabled = true;
+            }
+    
+            correctButton.classList.add("btn", "btn-success", "mx-1");
+            correctButton.innerHTML = makeIcon("check-lg")
+            correctButton.addEventListener('click', eventListenerFactory(true))
+    
+            wrongButton.classList.add("btn", "btn-danger", "mx-1");
+            wrongButton.innerHTML = makeIcon("x-lg")
+            wrongButton.addEventListener('click', eventListenerFactory(false))
+    
+            revealButton.classList.add("btn", "btn-warning", "mx-1");
+            revealButton.innerHTML = makeIcon("search")
+            revealButton.addEventListener('click', function () {
+                stompClient.send("/app/reveal-answer", {}, answer.player);
+            })
+    
+            judgeCell.appendChild(correctButton);
+            judgeCell.appendChild(wrongButton);
+            judgeCell.appendChild(revealButton);
         }
-
-        correctButton.classList.add("btn", "btn-success", "mx-1");
-        correctButton.innerHTML = makeIcon("check-lg")
-        correctButton.addEventListener('click', eventListenerFactory(true))
-
-        wrongButton.classList.add("btn", "btn-danger", "mx-1");
-        wrongButton.innerHTML = makeIcon("x-lg")
-        wrongButton.addEventListener('click', eventListenerFactory(false))
-
-        revealButton.classList.add("btn", "btn-warning", "mx-1");
-        revealButton.innerHTML = makeIcon("search")
-        revealButton.addEventListener('click', function () {
-            stompClient.send("/app/reveal-answer", {}, answer.player);
-        })
-
-        judgeCell.appendChild(correctButton);
-        judgeCell.appendChild(wrongButton);
-        judgeCell.appendChild(revealButton);
     }
 }
 
