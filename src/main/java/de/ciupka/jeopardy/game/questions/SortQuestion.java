@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import de.ciupka.jeopardy.controller.messages.AnswerUpdate;
-import de.ciupka.jeopardy.controller.messages.AnswerUpdateType;
 import de.ciupka.jeopardy.game.Player;
 
 public class SortQuestion extends AbstractQuestion<SortOption[]>
@@ -57,7 +56,7 @@ public class SortQuestion extends AbstractQuestion<SortOption[]>
     @Override
     public void evaluateAnswers() {
         int max = -1;
-        List<Player> right = new ArrayList<>();
+        List<Answer<SortOption[]>> right = new ArrayList<>();
 
         SortOption[] correctAnswer = getAnswer();
 
@@ -70,23 +69,23 @@ public class SortQuestion extends AbstractQuestion<SortOption[]>
                 }
             }
             if (corrects < max) {
-                answer.getPlayer().updateScore(getWrongPoints());
+                answer.setCorrect(this, false);
                 continue;
             }
             if (corrects > max) {
                 max = corrects;
-                for (Player p : right) {
-                    p.updateScore(getWrongPoints());
+                for (Answer<SortOption[]> a : right) {
+                    a.setCorrect(this, false);
                 }
 
                 right.clear();
             }
 
-            right.add(answer.getPlayer());
+            right.add(answer);
         }
 
-        for (Player p : right) {
-            p.updateScore(getPoints()); // TODO: Maybe use a factor for the Points?
+        for (Answer<SortOption[]> a : right) {
+            a.setCorrect(this, true);
         }
 
     }

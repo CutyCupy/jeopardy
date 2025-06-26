@@ -38,10 +38,7 @@ const countdownWrapper = document.getElementById("countdown");
 const countdownText = document.getElementById("countdown-text");
 const countdownCircle = document.getElementById("countdown-circle");
 
-answerText.addEventListener('input', debounce((args) => submitAnswerFactory(args[0].srcElement.value)(), 333))
-answerNumber.addEventListener('input', debounce((args) => submitAnswerFactory(parseInt(args[0].srcElement.value || '0', 10))(), 333))
-
-const COUNTDOWN_LENGTH = 5;
+const COUNTDOWN_LENGTH = 0;
 
 var countdown;
 var countdownInterval;
@@ -65,11 +62,20 @@ const connect = () => {
         stompClient.subscribe("/topic/lobby-update", onLobbyUpdate);
         stompClient.subscribe("/user/topic/lobby-update", onLobbyUpdate);
 
+        stompClient.subscribe("/user/topic/active-player-update", (msg) => {
+            const isActive = JSON.parse(msg.body);
+
+            if (isActive) {
+                board.classList.add("active");
+            } else {
+                board.classList.remove("active");
+            }
+        })
+
         const boardUpdate = (msg) => {
             const update = JSON.parse(msg.body);
-            console.log(update);
 
-            highlightPlayer(update.player?.name);
+            highlightPlayer(update.currentPlayer?.name);
 
             const selectedQuestion = update.selectedQuestion?.identifier;
 
@@ -80,41 +86,56 @@ const connect = () => {
                 for (var cIdx = 0; cIdx < update.board.length; cIdx++) {
                     const category = update.board[cIdx];
                     const question = category.questions[qIdx];
-                    const wrapper = document.createElement("div");
-                    wrapper.classList.add("col", "text-center", "d-grid", "my-1");
 
-                    isChosen = (selectedQuestion && selectedQuestion.question == qIdx && selectedQuestion.category == cIdx);
+                    const { buttonNormal, buttonHover, textColorNormal, textColorHover } = deriveButtonColors(category.colorCode);
+
+                    var isChosen = (selectedQuestion && selectedQuestion.question == qIdx && selectedQuestion.category == cIdx);
 
                     const button = document.createElement("button");
-                    var buttonStyle = "btn-outline-primary";
-                    if (question.answered) {
-                        buttonStyle = "btn-success";
-                    } else if (isChosen) {
-                        buttonStyle = "btn-primary";
-                    } else if (selectedQuestion) {
-                        buttonStyle = "btn-outline-secondary"
-                    }
+
+                    button.style.setProperty('--background', buttonNormal);
+                    button.style.setProperty('--color', textColorNormal);
+                    button.style.setProperty('--hover-background', buttonHover);
+                    button.style.setProperty('--hover-color', textColorHover);
+
+                    button.classList.add("col", "question-btn");
+
                     button.disabled = question.answered || (selectedQuestion && !isChosen);
-                    button.classList.add("btn", buttonStyle, "align-self-md-center");
+                    if (question.answered) {
+                        var ownAnswer = question.answers.find((ans) => ans.player.name == update.mySelf?.name);
+                        console.log(ownAnswer);
+                        if (!ownAnswer) {
+                            button.classList.add("unanswered");
+                        } else if (!ownAnswer.correct) {
+                            button.classList.add("incorrect");
+                        } else {
+                            button.classList.add("correct")
+                        }
+                    }
+                    if (isChosen) {
+                        button.classList.add("selected");
+                    }
 
                     button.innerText = question.points;
 
                     if (!selectedQuestion) {
-                        button.addEventListener('click', callbackClosure(cIdx, (x) =>
-                            stompClient.send(
-                                "/app/question", {},
-                                JSON.stringify(
-                                    {
-                                        question: qIdx,
-                                        category: x,
-                                    },
-                                ),
-                            ),
-                        ));
+                        button.addEventListener('click', callbackClosure(cIdx, (x) => {
+                            if (board.classList.contains("active")) {
+                                stompClient.send(
+                                    "/app/question", {},
+                                    JSON.stringify(
+                                        {
+                                            question: qIdx,
+                                            category: x,
+                                        },
+                                    ),
+                                );
+                            }
+                        }),
+                        );
                     }
 
-                    wrapper.appendChild(button);
-                    row.appendChild(wrapper);
+                    row.appendChild(button);
                 }
 
                 return row;
@@ -125,15 +146,23 @@ const connect = () => {
 
             var rows = [row];
 
-            for (var category of update.board) {
-                const wrapper = document.createElement("div");
-                wrapper.classList.add("col", "text-center");
+            for (var i = 0; i < update.board.length; i++) {
+                var category = update.board[i]
+                const cat = document.createElement("div");
+                cat.classList.add("col", "category");
+                cat.innerText = category.name;
 
-                const header = document.createElement("h5");
-                header.innerText = category.name;
+                cat.style.background = category.colorCode;
+                cat.style.color = getTextColorForBackground(hexToHSL(category.colorCode).l);
 
-                wrapper.appendChild(header);
-                row.appendChild(wrapper);
+                if (selectedQuestion && selectedQuestion.category == i) {
+                    cat.style.filter = 'brightness(1.2)';
+                    cat.style.transition = 'all 0.3s ease';
+                } else if (selectedQuestion) {
+                    cat.style.filter = 'brightness(0.6)';
+                }
+
+                row.appendChild(cat);
             }
 
             // TODO: Nicht optimal gelöst
@@ -222,39 +251,39 @@ function onAnswerUpdate(msg) {
             continue;
         }
 
-        if(!document.getElementById(judgeID)) {
+        if (!document.getElementById(judgeID)) {
             var judgeCell = row.insertCell(-1);
             judgeCell.id = judgeID;
             row.classList.add("text-center");
-    
+
             var correctButton = document.createElement("button");
             var wrongButton = document.createElement("button");
             var revealButton = document.createElement("button");
-    
+
             var eventListenerFactory = (correct) => function () {
                 stompClient.send("/app/answer", {}, JSON.stringify({
                     playerName: answer.player,
                     isCorrect: correct,
                 }))
-    
+
                 wrongButton.disabled = true;
                 correctButton.disabled = true;
             }
-    
+
             correctButton.classList.add("btn", "btn-success", "mx-1");
             correctButton.innerHTML = makeIcon("check-lg")
             correctButton.addEventListener('click', eventListenerFactory(true))
-    
+
             wrongButton.classList.add("btn", "btn-danger", "mx-1");
             wrongButton.innerHTML = makeIcon("x-lg")
             wrongButton.addEventListener('click', eventListenerFactory(false))
-    
+
             revealButton.classList.add("btn", "btn-warning", "mx-1");
             revealButton.innerHTML = makeIcon("search")
             revealButton.addEventListener('click', function () {
                 stompClient.send("/app/reveal-answer", {}, answer.player);
             })
-    
+
             judgeCell.appendChild(correctButton);
             judgeCell.appendChild(wrongButton);
             judgeCell.appendChild(revealButton);
@@ -312,7 +341,6 @@ function onQuestionUpdate(msg) {
         return;
     }
     hideQuestion();
-    board.style.display = 'none';
 
     toDisplay = [];
 
@@ -333,6 +361,8 @@ function onQuestionUpdate(msg) {
     question.innerText = update.question.question;
 
     if (showCategory) {
+        board.style.display = 'none';
+
         toDisplay.push(question_header);
         if (update.question.type === 'NORMAL') {
             toDisplay.push(buzzer);
@@ -425,7 +455,7 @@ function onQuestionUpdate(msg) {
             countdownText.innerHTML = `${countdown}s`;
             countdownCircle.style.strokeDashoffset = (1 - (countdown / COUNTDOWN_LENGTH)) * diameter;
             if (countdown < 0) {
-                countdownEndAudio.play();
+                // countdownEndAudio.play();
                 countdownWrapper.style.display = 'none';
                 clearInterval(countdownInterval);
 
@@ -660,4 +690,91 @@ function swapElements(el1, el2) {
 
     parent1.insertBefore(el2, next1);
     parent2.insertBefore(el1, next2);
+}
+
+
+function hexToHSL(H) {
+    let r = 0, g = 0, b = 0;
+    if (H.length === 7) {
+        r = parseInt(H.substring(1, 3), 16) / 255;
+        g = parseInt(H.substring(3, 5), 16) / 255;
+        b = parseInt(H.substring(5, 7), 16) / 255;
+    }
+    let max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0, l = (max + min) / 2;
+
+    if (max !== min) {
+        let d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+
+    h = Math.round(h * 360);
+    s = Math.round(s * 100);
+    l = Math.round(l * 100);
+
+    return { h, s, l };
+}
+
+function hslToHex(h, s, l) {
+    s /= 100;
+    l /= 100;
+
+    function hue2rgb(p, q, t) {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+        return p;
+    }
+
+    let r, g, b;
+
+    if (s === 0) {
+        r = g = b = l;
+    } else {
+        let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        let p = 2 * l - q;
+        r = hue2rgb(p, q, h / 360 + 1 / 3);
+        g = hue2rgb(p, q, h / 360);
+        b = hue2rgb(p, q, h / 360 - 1 / 3);
+    }
+
+    let toHex = x => {
+        let hex = Math.round(x * 255).toString(16);
+        return hex.length === 1 ? "0" + hex : hex;
+    };
+
+    return "#" + toHex(r) + toHex(g) + toHex(b);
+}
+
+// --- Textfarbe basierend auf Helligkeit (L) ---
+
+function getTextColorForBackground(l) {
+    // Wenn Lichtstärke unter 50%, Text weiß, sonst dunkel
+    return l < 50 ? '#fff' : '#2d2d2d';
+}
+
+// --- Farben ableiten ---
+
+function deriveButtonColors(categoryHex) {
+    const hsl = hexToHSL(categoryHex);
+
+    // Dunklerer Ton für Button normal
+    let normalL = Math.max(0, hsl.l + 15);
+    // Hellerer Ton für Hover
+    let hoverL = Math.min(100, hsl.l + 30);
+
+    return {
+        buttonNormal: hslToHex(hsl.h, hsl.s, normalL),
+        buttonHover: hslToHex(hsl.h, hsl.s, hoverL),
+        textColorNormal: getTextColorForBackground(normalL),
+        textColorHover: getTextColorForBackground(hoverL)
+    };
 }

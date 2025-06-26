@@ -7,12 +7,14 @@ public class BoardUpdate {
 
     private Category[] board;
     private SelectedQuestion selectedQuestion;
-    private Player player;
+    private Player currentPlayer;
+    private Player mySelf;
 
-    public BoardUpdate(Category[] board, SelectedQuestion active, Player player) {
+    public BoardUpdate(Category[] board, SelectedQuestion active, Player player, Player mySelf) {
         this.board = board;
         this.selectedQuestion = active;
-        this.player = player;
+        this.currentPlayer = player;
+        this.mySelf = mySelf;
     }
 
     public Category[] getBoard() {
@@ -23,8 +25,11 @@ public class BoardUpdate {
         return selectedQuestion;
     }
 
-    public Player getPlayer() {
-        return player;
+    public Player getCurrentPlayer() {
+        return currentPlayer;
     }
 
+    public Player getMySelf() {
+        return mySelf;
+    }
 }

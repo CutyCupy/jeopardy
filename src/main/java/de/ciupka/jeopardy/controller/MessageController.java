@@ -1,8 +1,5 @@
 package de.ciupka.jeopardy.controller;
 
-import java.util.List;
-import java.util.UUID;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.annotation.SendToUser;
@@ -38,8 +35,8 @@ public class MessageController {
 
     @MessageMapping("/on-connect")
     public void onConnect(UserPrincipal principal) {
-        this.notifications.sendGameMasterUpdate(principal.getName());
-        this.notifications.sendLobbyUpdate(principal.getName());
+        this.notifications.sendGameMasterUpdate(principal.getID());
+        this.notifications.sendLobbyUpdate(principal.getID());
     }
 
     /**
@@ -67,8 +64,9 @@ public class MessageController {
          */
         notifications.sendLobbyUpdate();
         if (game.isActive()) {
-            notifications.sendBoardUpdate(principal.getName());
-            notifications.sendQuestionUpdate(principal.getName());
+            notifications.sendBoardUpdate(principal.getID());
+            notifications.sendQuestionUpdate(principal.getID());
+            notifications.sendActivePlayerUpdate(principal.getID());
         }
 
         return added;
@@ -83,6 +81,7 @@ public class MessageController {
         this.game.start();
 
         this.notifications.sendBoardUpdate();
+        this.notifications.sendActivePlayerUpdate();
     }
 
     @MessageMapping("/submit-answer")
@@ -99,7 +98,7 @@ public class MessageController {
         // TODO: This can be checked better
         if (question.getType().equals(Type.NORMAL)) {
             this.notifications.sendOnBuzzer();
-            this.notifications.setBuzzer(false, principal.getName());
+            this.notifications.setBuzzer(false, principal.getID());
         }
 
         this.notifications.sendAnswers();
@@ -108,19 +107,23 @@ public class MessageController {
     }
 
     @MessageMapping("/answer")
-    public void answer(AnswerEvaluation answer, UserPrincipal principal) {
+    public void answer(AnswerEvaluation answerEval, UserPrincipal principal) {
         if (!principal.getID().equals(this.game.getMaster())) {
             return;
         }
 
-        if (game.getSelectedQuestion().getQuestion() instanceof Evaluatable) {
+        AbstractQuestion<?> question = game.getSelectedQuestion().getQuestion();
+        if (question instanceof Evaluatable) {
             return;
         }
 
-        this.game.answerQuestion(this.game.getPlayerByName(answer.getPlayerName()), !answer.isCorrect());
+        Player player = this.game.getPlayerByName(answerEval.getPlayerName());
 
-        this.notifications.sendLobbyUpdate();
-        this.notifications.sendBoardUpdate();
+        if (this.game.answerQuestion(player, !answerEval.isCorrect())) {
+            this.notifications.sendLobbyUpdate();
+            this.notifications.sendBoardUpdate();
+        }
+
     }
 
     @MessageMapping("/reveal-answer")
@@ -157,8 +160,8 @@ public class MessageController {
             return "Fehler bei der Auswahl der Frage!";
         }
 
-        this.notifications.sendBoardUpdate();
         this.notifications.sendQuestionUpdate();
+        this.notifications.sendBoardUpdate();
 
         return null;
     }
@@ -199,6 +202,7 @@ public class MessageController {
         }
 
         this.notifications.sendQuestionUpdate();
+        this.notifications.sendActivePlayerUpdate();
     }
 
 }

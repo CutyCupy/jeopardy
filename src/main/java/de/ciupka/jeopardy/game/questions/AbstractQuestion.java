@@ -19,7 +19,6 @@ public abstract class AbstractQuestion<T> {
 
     private QuestionState state;
 
-    @JsonIgnore
     private List<Answer<T>> answers = new ArrayList<>();
 
     public AbstractQuestion(String question, int points, T answer, Type type) {
