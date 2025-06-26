@@ -1,0 +1,114 @@
+.title {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: "Impact", sans-serif;
+    font-size: 80px;
+    letter-spacing: 5px;
+    color: #d37a5a;
+    text-shadow:
+        0 0 1.5px #b25e42,
+        0 0 4px #7e412d,
+        0 0 6px #5e311f;
+    overflow: hidden; /* wichtig, damit der Glanz nicht rausläuft */
+}
+
+.title span {
+    opacity: 0;
+    transform: translateY(20px);
+    -webkit-text-stroke: 1px #1a1a1a; /* dunkelbraune dünne Umrandung */
+    animation:
+        fadeBounce 0.8s ease-out forwards var(--hop-delay),
+        colorShift 20s linear infinite var(--color-delay),
+        shadowShift 20s ease-in-out infinite var(--color-delay),
+        gentleHop 5s ease-in-out infinite var(--hop-delay);
+    animation-fill-mode: forwards;
+}
+
+@keyframes colorShift {
+    0% {
+        color: #f3b27a;
+    }
+    20% {
+        color: #d97c50;
+    }
+    40% {
+        color: #c25a3c;
+    }
+    60% {
+        color: #deb475;
+    }
+    80% {
+        color: #c88e6a;
+    }
+    100% {
+        color: #f3b27a;
+    }
+}
+
+@keyframes shadowShift {
+    0% {
+        text-shadow:
+            0 0 1px #f3b27a,
+            0 0 3px #d97c50,
+            0 0 4px #c25a3c;
+    }
+    20% {
+        text-shadow:
+            0 0 1px #d97c50,
+            0 0 3px #c25a3c,
+            0 0 4px #deb475;
+    }
+    40% {
+        text-shadow:
+            0 0 1px #c25a3c,
+            0 0 3px #deb475,
+            0 0 4px #c88e6a;
+    }
+    60% {
+        text-shadow:
+            0 0 1px #deb475,
+            0 0 3px #c88e6a,
+            0 0 4px #f3b27a;
+    }
+    80% {
+        text-shadow:
+            0 0 1px #c88e6a,
+            0 0 3px #f3b27a,
+            0 0 4px #d97c50;
+    }
+    100% {
+        text-shadow:
+            0 0 1px #f3b27a,
+            0 0 3px #d97c50,
+            0 0 4px #c25a3c;
+    }
+}
+
+@keyframes fadeBounce {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    60% {
+        opacity: 1;
+        transform: translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes gentleHop {
+    0%,
+    20%,
+    100% {
+        transform: translateY(0);
+        /* animation-timing-function: cubic-bezier(0.4, 0, 1, 1); */
+    }
+    10% {
+        transform: translateY(-20px);
+        /* animation-timing-function: cubic-bezier(0, 0, 0.2, 1); */
+    }
+}
