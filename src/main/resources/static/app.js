@@ -196,7 +196,7 @@ const connect = () => {
 
 function formatAnswer(txt) {
     if (Array.isArray(txt)) {
-        return txt.join(', ');
+        return txt.map((v) => `${v.name} (${v.value})`).join(', ');
     }
     return txt;
 }
@@ -403,7 +403,9 @@ function onQuestionUpdate(msg) {
                 }
 
                 updateSubmitButton(() => {
-                    submitAnswer(Array.from(answerSort.children).map((v) => v.innerText));
+                    submitAnswer(Array.from(answerSort.children).map((v) => {
+                        return { name: v.innerText, value: 0 }
+                    }));
                 });
 
                 toDisplay.push(answerSort);
@@ -477,7 +479,7 @@ function onQuestionUpdate(msg) {
                 }
                 break;
             case 'SORT':
-                answer.innerText = update.question.answer.join(", ");
+                answer.innerText = update.question.answer.map((v) => `${v.name} (${v.value})`).join(", ");
                 break;
         }
         toDisplay.push(answer);
