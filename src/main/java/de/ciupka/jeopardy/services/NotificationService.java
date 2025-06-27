@@ -13,6 +13,8 @@ import de.ciupka.jeopardy.controller.messages.AnswerUpdate;
 import de.ciupka.jeopardy.controller.messages.BoardUpdate;
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
 import de.ciupka.jeopardy.controller.messages.QuestionUpdate;
+import de.ciupka.jeopardy.exception.CategoryNotFoundException;
+import de.ciupka.jeopardy.exception.QuestionNotFoundException;
 import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
@@ -98,7 +100,12 @@ public class NotificationService {
     }
 
     public void sendAnswers(final UUID... users) {
-        AbstractQuestion<?> selected = game.getSelectedQuestion();
+        AbstractQuestion<?> selected = null;
+        try {
+            selected = game.getSelectedQuestion();
+        } catch (CategoryNotFoundException e) {
+        } catch (QuestionNotFoundException e) {
+        }
         if (selected == null) {
             this.message(ANSWER, new ArrayList<AnswerUpdate>(), users);
             return;

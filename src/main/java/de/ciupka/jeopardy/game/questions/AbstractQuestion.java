@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import de.ciupka.jeopardy.controller.messages.AnswerUpdate;
+import de.ciupka.jeopardy.exception.AnswerNotFoundException;
 import de.ciupka.jeopardy.game.Player;
 
 public abstract class AbstractQuestion<T> {
@@ -91,10 +92,13 @@ public abstract class AbstractQuestion<T> {
         return answers;
     }
 
-    public Answer<T> getAnswerByPlayer(Player p) {
+    public Answer<T> getAnswerByPlayer(Player p) throws AnswerNotFoundException {
         Optional<Answer<T>> existing = answers.stream().filter((a) -> a.getPlayer().equals(p))
                 .findFirst();
-        return existing.isPresent() ? existing.get() : null;
+        if (!existing.isPresent()) {
+            throw new AnswerNotFoundException(p);
+        }
+        return existing.get();
     }
 
     public void addAnswer(Player p, JsonNode answer) {

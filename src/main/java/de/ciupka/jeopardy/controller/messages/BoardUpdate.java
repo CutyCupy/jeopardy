@@ -1,5 +1,6 @@
 package de.ciupka.jeopardy.controller.messages;
 
+import de.ciupka.jeopardy.exception.AnswerNotFoundException;
 import de.ciupka.jeopardy.game.Category;
 import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.Player;
@@ -78,9 +79,11 @@ public class BoardUpdate {
             this.points = question.getPoints();
             this.answered = question.isAnswered();
 
-            Answer<?> answer = question.getAnswerByPlayer(player);
-            if (answer != null) {
+            Answer<?> answer;
+            try {
+                answer = question.getAnswerByPlayer(player);
                 this.correct = answer.getCorrect();
+            } catch (AnswerNotFoundException e) {
             }
         }
 

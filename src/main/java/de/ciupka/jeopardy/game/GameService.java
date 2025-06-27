@@ -8,6 +8,14 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
+import de.ciupka.jeopardy.exception.AnswerNotFoundException;
+import de.ciupka.jeopardy.exception.CategoryNotFoundException;
+import de.ciupka.jeopardy.exception.GameAlreadyStartedException;
+import de.ciupka.jeopardy.exception.NoQuestionSelectedException;
+import de.ciupka.jeopardy.exception.PlayerAlreadyExistsException;
+import de.ciupka.jeopardy.exception.QuestionAlreadyAnsweredException;
+import de.ciupka.jeopardy.exception.QuestionAlreadySelectedException;
+import de.ciupka.jeopardy.exception.QuestionNotFoundException;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 import de.ciupka.jeopardy.game.questions.Answer;
 import de.ciupka.jeopardy.game.questions.EstimateQuestion;
@@ -109,15 +117,17 @@ public class GameService {
      * @param name The name that the new player wants to have.
      * @return True if a player was added to the lobby. If a player already exists
      *         with {@code name}, it will return false.
+     * @throws PlayerAlreadyExistsException
      */
-    public boolean addPlayer(UUID uuid, String name) {
+    public boolean addPlayer(UUID uuid, String name) throws PlayerAlreadyExistsException {
         Optional<Player> player = this.players.stream().filter((p) -> p.getName().equals(name))
                 .findFirst();
         if (player.isPresent()) {
-            // TODO: Think about a better solution for returning players.
-            // This Method relies heavily on trust, that noone hijacks another player by
-            // simply using their name.
-            player.get().setUuid(uuid);
+            Player existing = player.get();
+            if (!existing.isDisconnected()) {
+                throw new PlayerAlreadyExistsException(existing);
+            }
+            existing.setUuid(uuid);
             return false;
         }
         this.players.add(new Player(uuid, name));
@@ -135,9 +145,9 @@ public class GameService {
         return this.board;
     }
 
-    public Category getCategory(int idx) {
+    public Category getCategory(int idx) throws CategoryNotFoundException {
         if (idx < 0 || idx >= this.board.length) {
-            return null; // Maybe throw an Exception instead?
+            throw new CategoryNotFoundException();
         }
         return this.board[idx];
     }
@@ -146,34 +156,31 @@ public class GameService {
         this.selectedQuestionIdentifier = null;
     }
 
-    public boolean selectQuestion(QuestionIdentifier id) {
+    public void selectQuestion(QuestionIdentifier id) throws QuestionAlreadyAnsweredException,
+            QuestionAlreadySelectedException, CategoryNotFoundException, QuestionNotFoundException {
         if (this.selectedQuestionIdentifier != null) {
-            return false; // TODO: Maybe use Exceptions for error handling different cases?
+            throw new QuestionAlreadySelectedException();
         }
 
         Category cat = getCategory(id.getCategory());
-        if (cat == null) {
-            return false; // TODO: Maybe use Exceptions for error handling different cases?
-        }
 
         AbstractQuestion<?> qst = cat.getQuestion(id.getQuestion());
         if (qst == null) {
-            return false; // TODO: Maybe use Exceptions for error handling different cases?
+            throw new QuestionNotFoundException();
         }
 
         if (qst.isAnswered()) {
-            return false;
+            throw new QuestionAlreadyAnsweredException();
         }
 
         this.selectedQuestionIdentifier = id;
-        return true;
     }
 
     public QuestionIdentifier getSelectedQuestionIdentifier() {
         return selectedQuestionIdentifier;
     }
 
-    public AbstractQuestion<?> getSelectedQuestion() {
+    public AbstractQuestion<?> getSelectedQuestion() throws CategoryNotFoundException, QuestionNotFoundException {
         if (this.selectedQuestionIdentifier == null) {
             return null;
         }
@@ -182,25 +189,24 @@ public class GameService {
         return cat != null ? cat.getQuestion(this.selectedQuestionIdentifier.getQuestion()) : null;
     }
 
-    public boolean answerQuestion(Player p, boolean wrong) {
+    public boolean answerQuestion(Player p, boolean wrong) throws NoQuestionSelectedException, AnswerNotFoundException,
+            CategoryNotFoundException, QuestionNotFoundException {
         AbstractQuestion<?> q = this.getSelectedQuestion();
         if (q == null) {
-            return false;
+            throw new NoQuestionSelectedException();
         }
 
         Answer<?> answer = q.getAnswerByPlayer(p);
-        if (answer == null) {
-            return false;
-        }
 
         answer.setCorrect(q, !wrong);
         return true;
     }
 
-    public void closeQuestion() {
+    public void closeQuestion()
+            throws NoQuestionSelectedException, CategoryNotFoundException, QuestionNotFoundException {
         AbstractQuestion<?> question = this.getSelectedQuestion();
         if (question == null) {
-            return;
+            throw new NoQuestionSelectedException();
         }
 
         question.setAnswered(true);
@@ -243,9 +249,9 @@ public class GameService {
         return this.currentPlayerIdx >= 0;
     }
 
-    public void start() {
+    public void start() throws GameAlreadyStartedException {
         if (this.isActive()) {
-            return;
+            throw new GameAlreadyStartedException();
         }
 
         this.currentPlayerIdx = (int) (this.players.size() * Math.random());
