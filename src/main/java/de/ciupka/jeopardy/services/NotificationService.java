@@ -1,5 +1,6 @@
 package de.ciupka.jeopardy.services;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
@@ -8,11 +9,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import de.ciupka.jeopardy.controller.messages.AnswerUpdate;
 import de.ciupka.jeopardy.controller.messages.BoardUpdate;
 import de.ciupka.jeopardy.controller.messages.SelectedQuestion;
 import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.Player;
-import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 
 /**
  * This service provides utility methods for communication with all or specific
@@ -95,11 +96,16 @@ public class NotificationService {
     }
 
     public void sendAnswers(final UUID... users) {
-        AbstractQuestion<?> question = game.getSelectedQuestion().getQuestion();
+        SelectedQuestion selected = game.getSelectedQuestion();
+        if (selected != null) {
+            this.message(ANSWER,
+                    selected.getQuestion().getAnswerUpdates(),
+                    users);
+            return;
+        }
 
-        this.message(ANSWER,
-                question.getAnswerUpdates(),
-                users);
+        this.message(ANSWER, new ArrayList<AnswerUpdate>(), users);
+
     }
 
     public void sendActivePlayerUpdate(UUID... users) {

@@ -66,9 +66,9 @@ public abstract class AbstractQuestion<T> {
         return answers.stream().map((a) -> {
             switch (a.getUpdateType()) {
                 case SHORT_ANSWER, FULL_ANSWER:
-                    return new AnswerUpdate(a.getPlayer().getName(), a.getAnswer().toString());
+                    return new AnswerUpdate(a);
                 default:
-                    return new AnswerUpdate(a.getPlayer().getName(), null);
+                    return new AnswerUpdate(a, null);
             }
         }).toList();
     }

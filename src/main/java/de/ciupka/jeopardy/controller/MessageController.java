@@ -122,29 +122,30 @@ public class MessageController {
         if (this.game.answerQuestion(player, !answerEval.isCorrect())) {
             this.notifications.sendLobbyUpdate();
             this.notifications.sendBoardUpdate();
+            this.notifications.sendAnswers();
         }
-
     }
 
     @MessageMapping("/reveal-answer")
-    public void revealAnswer(String player, UserPrincipal principal) {
+    @SendToUser("/topic/reveal-answer")
+    public String revealAnswer(String player, UserPrincipal principal) {
         if (!principal.getID().equals(this.game.getMaster())) {
-            return;
+            return "Nur der Gamemaster darf Antworten revealen!";
         }
 
         AbstractQuestion<?> question = game.getSelectedQuestion().getQuestion();
 
         if (question.getState().ordinal() < QuestionState.LOCK_QUESTION.ordinal()) {
-            return;
+            return "Die Frage ist noch nicht locked!";
         }
 
         Answer<?> answer = question.getAnswerByPlayer(game.getPlayerByName(player));
 
         answer.setUpdateType(AnswerUpdateType.SHORT_ANSWER);
 
-        notifications.sendAnswers();
+        this.notifications.sendAnswers();
 
-        return;
+        return null;
     }
 
     @MessageMapping("/question")
@@ -167,7 +168,7 @@ public class MessageController {
     }
 
     @MessageMapping("/gamemaster")
-    @SendToUser("topic/gamemaster")
+    @SendToUser("/topic/gamemaster")
     public boolean setGameMaster(UserPrincipal principal) {
         this.game.setMaster(principal.getID());
 
@@ -203,6 +204,7 @@ public class MessageController {
 
         this.notifications.sendQuestionUpdate();
         this.notifications.sendActivePlayerUpdate();
+        this.notifications.sendAnswers();
     }
 
 }

@@ -42,13 +42,13 @@ public class SortQuestion extends AbstractQuestion<SortOption[]>
         return getAnswers().stream().map((a) -> {
             switch (a.getUpdateType()) {
                 case FULL_ANSWER:
-                    return new AnswerUpdate(a.getPlayer().getName(),
+                    return new AnswerUpdate(a,
                             Arrays.stream(a.getAnswer()).map(SortOption::toString).collect(Collectors.joining(", ")));
                 case SHORT_ANSWER:
-                    return new AnswerUpdate(a.getPlayer().getName(),
+                    return new AnswerUpdate(a,
                             Arrays.stream(a.getAnswer()).map(SortOption::getName).collect(Collectors.joining(", ")));
                 default:
-                    return new AnswerUpdate(a.getPlayer().getName(), null);
+                    return new AnswerUpdate(a, null);
             }
         }).toList();
     }
