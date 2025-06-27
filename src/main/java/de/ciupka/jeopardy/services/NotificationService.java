@@ -63,20 +63,12 @@ public class NotificationService {
 
         for (UUID user : users) {
             this.message(BOARD_UPDATE,
-                    new BoardUpdate(
-                            this.game.getBoard(),
-                            this.game.getSelectedQuestion(),
-                            this.game.getCurrentPlayer(),
-                            this.game.getPlayerByID(user)),
+                    new BoardUpdate(this.game, this.game.getPlayerByID(user)),
                     user);
         }
 
         this.message(BOARD_UPDATE,
-                new BoardUpdate(
-                        this.game.getBoard(),
-                        this.game.getSelectedQuestion(),
-                        this.game.getCurrentPlayer(),
-                        null),
+                new BoardUpdate(this.game, null),
                 this.game.getMaster());
     }
 

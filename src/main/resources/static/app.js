@@ -75,22 +75,27 @@ const connect = () => {
         const boardUpdate = (msg) => {
             const update = JSON.parse(msg.body);
 
-            highlightPlayer(update.currentPlayer?.name);
+            var cols = [];
+            for (var category of update.categories) {
+                const column = document.createElement("div");
+                column.classList.add("col", "board-column");
 
-            const selectedQuestion = update.selectedQuestion?.identifier;
+                const label = document.createElement("div");
+                label.classList.add("category");
+                label.innerText = category.title;
 
-            const createQuestionRow = (qIdx) => {
-                const row = document.createElement("div");
-                row.classList.add("row");
+                column.appendChild(label);
 
-                for (var cIdx = 0; cIdx < update.board.length; cIdx++) {
-                    const category = update.board[cIdx];
-                    const question = category.questions[qIdx];
 
-                    const { buttonNormal, buttonHover, textColorNormal, textColorHover } = deriveButtonColors(category.colorCode);
+                label.style.setProperty('--background', category.color);
+                label.style.setProperty('--color', getTextColorForBackground(hexToHSL(category.color).l));
 
-                    var isChosen = (selectedQuestion && selectedQuestion.question == qIdx && selectedQuestion.category == cIdx);
+                if (update.selected) {
+                    label.style.filter = 'brightness(0.6)';
+                }
+                const { buttonNormal, buttonHover, textColorNormal, textColorHover } = deriveButtonColors(category.color);
 
+                for (var question of category.questions) {
                     const button = document.createElement("button");
 
                     button.style.setProperty('--background', buttonNormal);
@@ -100,78 +105,45 @@ const connect = () => {
 
                     button.classList.add("col", "question-btn");
 
-                    button.disabled = question.answered || (selectedQuestion && !isChosen);
+                    const selected = _.isEqual(update.selected, question.id);
+
+                    button.disabled = question.answered || (update.selected && !selected);
                     if (question.answered) {
-                        var ownAnswer = question.answers.find((ans) => ans.player.name == update.mySelf?.name);
-                        console.log(ownAnswer);
-                        if (!ownAnswer) {
+                        if (question.correct === null) {
                             button.classList.add("unanswered");
-                        } else if (!ownAnswer.correct) {
+                        } else if (question.correct === false) {
                             button.classList.add("incorrect");
-                        } else {
+                        } else if (question.correct === true) {
                             button.classList.add("correct")
                         }
                     }
-                    if (isChosen) {
+
+                    if (selected) {
                         button.classList.add("selected");
+
+                        label.style.filter = 'brightness(1.2)';
+                        label.style.transition = 'all 0.3s ease';
                     }
 
                     button.innerText = question.points;
 
-                    if (!selectedQuestion) {
-                        button.addEventListener('click', callbackClosure(cIdx, (x) => {
-                            if (board.classList.contains("active")) {
-                                stompClient.send(
-                                    "/app/question", {},
-                                    JSON.stringify(
-                                        {
-                                            question: qIdx,
-                                            category: x,
-                                        },
-                                    ),
-                                );
-                            }
+                    if (!update.selected) {
+                        button.addEventListener('click', callbackClosure(question.id, (id) => {
+                            stompClient.send(
+                                "/app/question", {},
+                                JSON.stringify(id),
+                            );
                         }),
                         );
                     }
 
-                    row.appendChild(button);
+                    column.appendChild(button);
                 }
 
-                return row;
+                cols.push(column)
             }
 
-            const row = document.createElement("div");
-            row.classList.add("row");
-
-            var rows = [row];
-
-            for (var i = 0; i < update.board.length; i++) {
-                var category = update.board[i]
-                const cat = document.createElement("div");
-                cat.classList.add("col", "category");
-                cat.innerText = category.name;
-
-                cat.style.background = category.colorCode;
-                cat.style.color = getTextColorForBackground(hexToHSL(category.colorCode).l);
-
-                if (selectedQuestion && selectedQuestion.category == i) {
-                    cat.style.filter = 'brightness(1.2)';
-                    cat.style.transition = 'all 0.3s ease';
-                } else if (selectedQuestion) {
-                    cat.style.filter = 'brightness(0.6)';
-                }
-
-                row.appendChild(cat);
-            }
-
-            // TODO: Nicht optimal gelöst
-            for (var i = 0; i < update.board[0].questions.length; i++) {
-                rows.push(createQuestionRow(i));
-            }
-
-
-            board.replaceChildren(...rows);
+            board.replaceChildren(...cols);
         };
 
         stompClient.subscribe("/user/topic/board-update", boardUpdate);
