@@ -27,11 +27,6 @@ public class SortQuestion extends AbstractQuestion<SortOption[]>
     }
 
     @Override
-    public boolean allowWrongAnswer() {
-        return true;
-    }
-
-    @Override
     protected Answer<SortOption[]> parseAnswer(JsonNode node, Player player) {
         ObjectMapper mapper = new ObjectMapper();
         return new Answer<SortOption[]>(player, mapper.convertValue(node, SortOption[].class));

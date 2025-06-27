@@ -11,9 +11,11 @@ import org.springframework.stereotype.Service;
 
 import de.ciupka.jeopardy.controller.messages.AnswerUpdate;
 import de.ciupka.jeopardy.controller.messages.BoardUpdate;
-import de.ciupka.jeopardy.controller.messages.SelectedQuestion;
+import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
+import de.ciupka.jeopardy.controller.messages.QuestionUpdate;
 import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.Player;
+import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 
 /**
  * This service provides utility methods for communication with all or specific
@@ -74,12 +76,12 @@ public class NotificationService {
     }
 
     public void sendQuestionUpdate(final UUID... users) {
-        SelectedQuestion question = this.game.getSelectedQuestion();
+        QuestionIdentifier question = this.game.getSelectedQuestionIdentifier();
         if (question == null) {
-            this.message(QUESTION_UPDATE, new SelectedQuestion(), users);
+            this.message(QUESTION_UPDATE, new HashMap<>(), users);
             return;
         }
-        this.message(QUESTION_UPDATE, question, users);
+        this.message(QUESTION_UPDATE, new QuestionUpdate(question, game), users);
     }
 
     public void sendGameMasterUpdate(final UUID... users) {
@@ -96,15 +98,15 @@ public class NotificationService {
     }
 
     public void sendAnswers(final UUID... users) {
-        SelectedQuestion selected = game.getSelectedQuestion();
-        if (selected != null) {
-            this.message(ANSWER,
-                    selected.getQuestion().getAnswerUpdates(),
-                    users);
+        AbstractQuestion<?> selected = game.getSelectedQuestion();
+        if (selected == null) {
+            this.message(ANSWER, new ArrayList<AnswerUpdate>(), users);
             return;
         }
 
-        this.message(ANSWER, new ArrayList<AnswerUpdate>(), users);
+        this.message(ANSWER,
+                selected.getAnswerUpdates(),
+                users);
 
     }
 

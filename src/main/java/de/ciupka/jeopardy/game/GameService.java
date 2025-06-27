@@ -8,7 +8,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
-import de.ciupka.jeopardy.controller.messages.SelectedQuestion;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 import de.ciupka.jeopardy.game.questions.Answer;
 import de.ciupka.jeopardy.game.questions.EstimateQuestion;
@@ -23,7 +22,7 @@ public class GameService {
     private List<Player> players;
 
     private Category[] board;
-    private SelectedQuestion selectedQuestion;
+    private QuestionIdentifier selectedQuestionIdentifier;
 
     private int currentPlayerIdx = -1;
     private UUID master;
@@ -144,11 +143,11 @@ public class GameService {
     }
 
     public void resetQuestion() {
-        this.selectedQuestion = null;
+        this.selectedQuestionIdentifier = null;
     }
 
     public boolean selectQuestion(QuestionIdentifier id) {
-        if (this.selectedQuestion != null) {
+        if (this.selectedQuestionIdentifier != null) {
             return false; // TODO: Maybe use Exceptions for error handling different cases?
         }
 
@@ -156,6 +155,7 @@ public class GameService {
         if (cat == null) {
             return false; // TODO: Maybe use Exceptions for error handling different cases?
         }
+
         AbstractQuestion<?> qst = cat.getQuestion(id.getQuestion());
         if (qst == null) {
             return false; // TODO: Maybe use Exceptions for error handling different cases?
@@ -165,20 +165,28 @@ public class GameService {
             return false;
         }
 
-        this.selectedQuestion = new SelectedQuestion(id, cat, qst, getCurrentPlayer());
+        this.selectedQuestionIdentifier = id;
         return true;
     }
 
-    public SelectedQuestion getSelectedQuestion() {
-        return selectedQuestion;
+    public QuestionIdentifier getSelectedQuestionIdentifier() {
+        return selectedQuestionIdentifier;
+    }
+
+    public AbstractQuestion<?> getSelectedQuestion() {
+        if (this.selectedQuestionIdentifier == null) {
+            return null;
+        }
+        Category cat = getCategory(this.selectedQuestionIdentifier.getCategory());
+
+        return cat != null ? cat.getQuestion(this.selectedQuestionIdentifier.getQuestion()) : null;
     }
 
     public boolean answerQuestion(Player p, boolean wrong) {
-        if (this.selectedQuestion == null) {
+        AbstractQuestion<?> q = this.getSelectedQuestion();
+        if (q == null) {
             return false;
         }
-
-        AbstractQuestion<?> q = selectedQuestion.getQuestion();
 
         Answer<?> answer = q.getAnswerByPlayer(p);
         if (answer == null) {
@@ -190,12 +198,13 @@ public class GameService {
     }
 
     public void closeQuestion() {
-        if (this.selectedQuestion == null) {
+        AbstractQuestion<?> question = this.getSelectedQuestion();
+        if (question == null) {
             return;
         }
 
-        selectedQuestion.getQuestion().setAnswered(true);
-        selectedQuestion = null;
+        question.setAnswered(true);
+        selectedQuestionIdentifier = null;
         currentPlayerIdx = (currentPlayerIdx + 1) % this.players.size();
     }
 

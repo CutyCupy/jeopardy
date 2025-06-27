@@ -11,11 +11,6 @@ public class Question extends AbstractQuestion<String> {
     }
 
     @Override
-    public boolean allowWrongAnswer() {
-        return false;
-    }
-
-    @Override
     protected Answer<String> parseAnswer(JsonNode node, Player player) {
         return new Answer<String>(player, node.asText());
     }

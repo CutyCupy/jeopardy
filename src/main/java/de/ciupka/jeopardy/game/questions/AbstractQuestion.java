@@ -35,7 +35,7 @@ public abstract class AbstractQuestion<T> {
     }
 
     public int getWrongPoints() {
-        return allowWrongAnswer() ? 0 : -getPoints();
+        return this.type.getHasPenalty() ? 0 : -getPoints();
     }
 
     public String getQuestion() {
@@ -57,8 +57,6 @@ public abstract class AbstractQuestion<T> {
     public Type getType() {
         return this.type;
     }
-
-    public abstract boolean allowWrongAnswer();
 
     protected abstract Answer<T> parseAnswer(JsonNode node, Player player);
 

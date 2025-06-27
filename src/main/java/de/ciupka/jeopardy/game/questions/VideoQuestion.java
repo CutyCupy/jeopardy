@@ -17,11 +17,6 @@ public class VideoQuestion extends AbstractQuestion<String> {
     }
 
     @Override
-    public boolean allowWrongAnswer() {
-        return true;
-    }
-
-    @Override
     protected Answer<String> parseAnswer(JsonNode node, Player player) {
         return new Answer<String>(player, node.asText());
     }
