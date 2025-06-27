@@ -7,7 +7,9 @@ public class Answer<T> {
 
     private Player player;
     private T answer;
+
     private AnswerUpdateType updateType;
+    private Boolean correct;
 
     public Answer(Player p, T a) {
         this.player = p;
@@ -33,6 +35,15 @@ public class Answer<T> {
 
     public void setUpdateType(AnswerUpdateType updateType) {
         this.updateType = updateType;
+    }
+
+    public void setCorrect(AbstractQuestion<?> question, boolean correct) {
+        this.player.updateScore(correct ? question.getPoints() : question.getWrongPoints());
+        this.correct = correct;
+    }
+
+    public Boolean getCorrect() {
+        return this.correct;
     }
 
 }

@@ -25,28 +25,28 @@ public class EstimateQuestion extends AbstractQuestion<Integer> implements Evalu
     @Override
     public void evaluateAnswers() {
         int min = Integer.MAX_VALUE;
-        List<Player> right = new ArrayList<>();
+        List<Answer<Integer>> right = new ArrayList<>();
 
         for (Answer<Integer> answer : getAnswers()) {
             int delta = Math.abs(answer.getAnswer() - getAnswer());
             if (delta > min) {
-                answer.getPlayer().updateScore(getWrongPoints());
+                answer.setCorrect(this, false);
                 continue;
             }
             if (delta < min) {
                 min = delta;
-                for (Player p : right) {
-                    p.updateScore(getWrongPoints());
+                for (Answer<Integer> ans : right) {
+                    ans.setCorrect(this, false);
                 }
 
                 right.clear();
             }
 
-            right.add(answer.getPlayer());
+            right.add(answer);
         }
 
-        for (Player p : right) {
-            p.updateScore(getPoints());
+        for (Answer<Integer> ans : right) {
+            ans.setCorrect(this, true);
         }
     }
 

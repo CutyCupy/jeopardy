@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
 import de.ciupka.jeopardy.controller.messages.SelectedQuestion;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
+import de.ciupka.jeopardy.game.questions.Answer;
 import de.ciupka.jeopardy.game.questions.EstimateQuestion;
 import de.ciupka.jeopardy.game.questions.Question;
 import de.ciupka.jeopardy.game.questions.SortOption;
@@ -32,6 +33,7 @@ public class GameService {
 
         this.board = new Category[] {
                 new Category("Twitch",
+                        "#4D3280",
                         new EstimateQuestion(
                                 "Wieviele Nachrichten habe ich in Chats im Mai 2025 von Streamern aus unserer Freundesgruppe geschrieben? (Sleep, Chris, Lasse, Leonie, Lari, Selina)",
                                 100,
@@ -53,7 +55,32 @@ public class GameService {
                                 "Welches Emote wurde 2021 aufgrund von kontroversen Tweets des 'Originals' entfernt?",
                                 1000,
                                 "PogChamp")),
+
+                new Category("Tierwelt",
+                        "#506837",
+                        new SortQuestion("Sortiere diese Tiere nach ihrer Größe (die Größten zuerst)", 100,
+                                new SortOption[] {
+                                        new SortOption("Elefant", 100),
+                                        new SortOption("Pferd", 80),
+                                        new SortOption("Schaf", 60),
+                                        new SortOption("Katze", 40),
+                                        new SortOption("Igel", 20),
+                                        new SortOption("Ameise", 10),
+                                }),
+                        new EstimateQuestion("Wieviel Kilogramm Krill ist ein Blauwal pro Tag im Schnitt?", 400,
+                                7000),
+                        new EstimateQuestion("Wie schnell war die schnellste aufgezeichnete Hauskatze (in km/h)?", 700,
+                                48),
+                        new Question("Wieviele Mägen hat eine Kuh?", 1000, "Vier")),
+
+                new Category("League of Legends",
+                        "#9E8C49",
+                        new Question("Wieviele Schwänze hat Ahri?", 100, "9"),
+                        new EstimateQuestion("Wieviel Range hat Caitlyn?", 400, 650),
+                        new TextQuestion("Welchen Champion spielte Faker in seinem Pro Debüt?", 700, "Nidalee"),
+                        new VideoQuestion("Was passiert als nächstes?", 1000, "2dz8zb", "ga4ln4")),
                 new Category("Valorant",
+                        "#B93B3B",
                         new Question("Wieviele Waffen gibt es in VALORANT?", 100, "18"),
                         new SortQuestion(
                                 "Ordne die folgenden Waffen basierend auf ihre Magazingröße (von den Meisten zu den Wenigsten)",
@@ -70,28 +97,6 @@ public class GameService {
                         new EstimateQuestion(
                                 "Wieviel HP hat die Harbor Sphere (oder Smoke - ka wie man das Ding nennen soll)",
                                 1000, 500)),
-
-                new Category("League of Legends",
-                        new Question("Wieviele Schwänze hat Ahri?", 100, "9"),
-                        new EstimateQuestion("Wieviel Range hat Caitlyn?", 400, 650),
-                        new TextQuestion("Welchen Champion spielte Faker in seinem Pro Debüt?", 700, "Nidalee"),
-                        new VideoQuestion("Was passiert als nächstes?", 1000, "2dz8zb", "ga4ln4")),
-
-                new Category("Tierwelt",
-                        new SortQuestion("Sortiere diese Tiere nach ihrer Größe (die Größten zuerst)", 100,
-                                new SortOption[] {
-                                        new SortOption("Elefant", 100),
-                                        new SortOption("Pferd", 80),
-                                        new SortOption("Schaf", 60),
-                                        new SortOption("Katze", 40),
-                                        new SortOption("Igel", 20),
-                                        new SortOption("Ameise", 10),
-                                }),
-                        new EstimateQuestion("Wieviel Kilogramm Krill ist ein Blauwal pro Tag im Schnitt?", 400,
-                                7000),
-                        new EstimateQuestion("Wie schnell war die schnellste aufgezeichnete Hauskatze (in km/h)?", 700,
-                                48),
-                        new Question("Wieviele Mägen hat eine Kuh?", 1000, "Vier")),
         };
     }
 
@@ -168,19 +173,20 @@ public class GameService {
         return selectedQuestion;
     }
 
-    public void answerQuestion(Player p, boolean wrong) {
+    public boolean answerQuestion(Player p, boolean wrong) {
         if (this.selectedQuestion == null) {
-            return;
+            return false;
         }
 
-        if (p != null) {
-            AbstractQuestion<?> q = selectedQuestion.getQuestion();
-            int factor = 1;
-            if (wrong) {
-                factor = q.allowWrongAnswer() ? 0 : -1;
-            }
-            p.updateScore(factor * q.getPoints());
+        AbstractQuestion<?> q = selectedQuestion.getQuestion();
+
+        Answer<?> answer = q.getAnswerByPlayer(p);
+        if (answer == null) {
+            return false;
         }
+
+        answer.setCorrect(q, !wrong);
+        return true;
     }
 
     public void closeQuestion() {
@@ -251,7 +257,7 @@ public class GameService {
         return false;
     }
 
-    public String[] getPlayerIDs() {
-        return players.stream().map((p) -> p.getUuid().toString()).toArray(String[]::new);
+    public UUID[] getPlayerIDs() {
+        return players.stream().map((p) -> p.getUuid()).toArray(UUID[]::new);
     }
 }

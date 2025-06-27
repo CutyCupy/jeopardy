@@ -5,10 +5,12 @@ import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 public class Category {
 
     private String name;
+    private String colorCode;
     private AbstractQuestion<?>[] questions;
 
-    public Category(String name, AbstractQuestion<?>... questions) {
+    public Category(String name, String colorCode, AbstractQuestion<?>... questions) {
         this.name = name;
+        this.colorCode = colorCode;
         this.questions = questions;
     }
 
@@ -25,5 +27,9 @@ public class Category {
             return null; // Maybe throw an Exception instead?
         }
         return this.questions[idx];
+    }
+
+    public String getColorCode() {
+        return colorCode;
     }
 }
