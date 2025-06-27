@@ -19,9 +19,8 @@ public class BoardUpdate {
         for (int i = 0; i < board.length; i++) {
             this.categories[i] = new CategoryUpdate(board[i], i, player);
         }
-        SelectedQuestion question = game.getSelectedQuestion();
 
-        this.selected = question != null ? question.getIdentifier() : null;
+        this.selected = game.getSelectedQuestionIdentifier();
     }
 
     public CategoryUpdate[] getCategories() {

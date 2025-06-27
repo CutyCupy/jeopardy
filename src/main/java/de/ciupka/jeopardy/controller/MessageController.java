@@ -91,7 +91,11 @@ public class MessageController {
             return false;
         }
 
-        AbstractQuestion<?> question = this.game.getSelectedQuestion().getQuestion();
+        AbstractQuestion<?> question = this.game.getSelectedQuestion();
+
+        if (question == null) {
+            return false;
+        }
 
         question.addAnswer(answering, answer.getAnswer());
 
@@ -112,8 +116,8 @@ public class MessageController {
             return;
         }
 
-        AbstractQuestion<?> question = game.getSelectedQuestion().getQuestion();
-        if (question instanceof Evaluatable) {
+        AbstractQuestion<?> question = game.getSelectedQuestion();
+        if (question == null || question instanceof Evaluatable) {
             return;
         }
 
@@ -133,7 +137,10 @@ public class MessageController {
             return "Nur der Gamemaster darf Antworten revealen!";
         }
 
-        AbstractQuestion<?> question = game.getSelectedQuestion().getQuestion();
+        AbstractQuestion<?> question = game.getSelectedQuestion();
+        if (question == null) {
+            return "Aktuell ist keine Frage ausgewählt!";
+        }
 
         if (question.getState().ordinal() < QuestionState.LOCK_QUESTION.ordinal()) {
             return "Die Frage ist noch nicht locked!";
@@ -183,7 +190,10 @@ public class MessageController {
             return;
         }
 
-        AbstractQuestion<?> question = game.getSelectedQuestion().getQuestion();
+        AbstractQuestion<?> question = this.game.getSelectedQuestion();
+        if (question == null) {
+            return;
+        }
 
         boolean worked = more ? question.revealMore() : question.revealLess();
 

@@ -13,11 +13,6 @@ public class EstimateQuestion extends AbstractQuestion<Integer> implements Evalu
     }
 
     @Override
-    public boolean allowWrongAnswer() {
-        return true;
-    }
-
-    @Override
     protected Answer<Integer> parseAnswer(JsonNode node, Player player) {
         return new Answer<Integer>(player, node.asInt());
     }

@@ -6,7 +6,8 @@ const joinButtons = document.getElementById("join")
 const lobby = document.getElementById("lobby");
 const board = document.getElementById("board");
 
-const question_header = document.getElementById("question-header");
+const question_title = document.getElementById("question-title");
+const question_subtitle = document.getElementById("question-subtitle");
 const question = document.getElementById("question");
 const question_data = document.getElementById("question-data");
 
@@ -341,14 +342,21 @@ function onQuestionUpdate(msg) {
     const isLocked = states.indexOf('LOCK_QUESTION') <= idx;
     const showAnswer = states.indexOf('SHOW_ANSWER') <= idx;
 
-    question_header.innerText = `${update.category.name} - ${update.question.points} Punkte`;
+    const { buttonNormal } = deriveButtonColors(update.category.colorCode);
+
+
+    question_title.innerText = `${update.category.name} - ${update.question.points} Punkte`;
+    question_title.style.setProperty("--color", update.category.colorCode)
+    question_subtitle.innerText = `${update.question.type.title} - ${update.question.type.penalty ? '' : 'keine '}Minuspunkte`
+    question_subtitle.style.setProperty("--color", buttonNormal)
     question.innerText = update.question.question;
 
     if (showCategory) {
         board.style.display = 'none';
 
-        toDisplay.push(question_header);
-        if (update.question.type === 'NORMAL') {
+        toDisplay.push(question_title);
+        toDisplay.push(question_subtitle);
+        if (update.question.type.name === 'NORMAL') {
             toDisplay.push(buzzer);
         }
     }
@@ -356,7 +364,7 @@ function onQuestionUpdate(msg) {
     if (showQuestion) {
         toDisplay.push(question);
 
-        switch (update.question.type) {
+        switch (update.question.type.name) {
             case 'NORMAL':
                 toDisplay.push(buzzer);
                 break;
@@ -443,7 +451,7 @@ function onQuestionUpdate(msg) {
                 countdownWrapper.style.display = 'none';
                 clearInterval(countdownInterval);
 
-                switch (update.question.type) {
+                switch (update.question.type.name) {
                     case 'NORMAL':
                         updateBuzzerState(false);
                         break;
@@ -477,7 +485,7 @@ function onQuestionUpdate(msg) {
 
 
     if (showAnswer || isGameMaster) {
-        switch (update.question.type) {
+        switch (update.question.type.name) {
             case 'NORMAL':
             case 'TEXT':
             case 'ESTIMATE':
