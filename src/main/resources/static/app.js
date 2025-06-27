@@ -198,16 +198,28 @@ const connect = () => {
 function onAnswerUpdate(msg) {
     var answers = JSON.parse(msg.body);
 
+    var myAnswers = isGameMaster ? gamemasterAnswers : playerAnswers;
+    if (!answers.length) {
+        myAnswers.replaceChildren();
+        return;
+    }
+
     for (var answer of answers) {
-        // TODO: RowID and AnswerID
         const rowID = `row:${answer.player}`;
         const nameID = `name:${answer.player}`;
         const answerID = `answer:${answer.player}`;
         const judgeID = `judge:${answer.player}`;
-        var myAnswers = isGameMaster ? gamemasterAnswers : playerAnswers;
 
         var row = document.getElementById(rowID) || myAnswers.insertRow(-1);
+        row.classList.remove("table-success");
+        row.classList.remove("table-danger");
+
         row.id = rowID;
+        if (answer.correct === false) {
+            row.classList.add("table-danger");
+        } else if (answer.correct === true) {
+            row.classList.add("table-success");
+        }
 
         var nameCell = document.getElementById(nameID) || row.insertCell(-1);
         nameCell.id = nameID

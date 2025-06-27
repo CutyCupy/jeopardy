@@ -1,13 +1,21 @@
 package de.ciupka.jeopardy.controller.messages;
 
+import de.ciupka.jeopardy.game.questions.Answer;
+
 public class AnswerUpdate {
 
     private String player;
     private String answer;
+    private Boolean correct;
 
-    public AnswerUpdate(String p, String a) {
-        this.player = p;
-        this.answer = a;
+    public AnswerUpdate(Answer<?> answer) {
+        this(answer, answer.getAnswer().toString());
+    }
+
+    public AnswerUpdate(Answer<?> answer, String answerText) {
+        this.player = answer.getPlayer().getName();
+        this.correct = answer.getCorrect();
+        this.answer = answerText;
     }
 
     public String getPlayer() {
@@ -21,4 +29,9 @@ public class AnswerUpdate {
     public void setAnswer(String answer) {
         this.answer = answer;
     }
+
+    public Boolean getCorrect() {
+        return correct;
+    }
+
 }
