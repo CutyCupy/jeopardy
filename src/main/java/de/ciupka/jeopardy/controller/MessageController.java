@@ -10,6 +10,19 @@ import de.ciupka.jeopardy.controller.messages.AnswerEvaluation;
 import de.ciupka.jeopardy.controller.messages.AnswerUpdateType;
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
 import de.ciupka.jeopardy.controller.messages.SubmittedAnswer;
+import de.ciupka.jeopardy.exception.AnswerNotFoundException;
+import de.ciupka.jeopardy.exception.CategoryNotFoundException;
+import de.ciupka.jeopardy.exception.EvaluatableQuestionAnsweredException;
+import de.ciupka.jeopardy.exception.GameAlreadyStartedException;
+import de.ciupka.jeopardy.exception.InvalidQuestionStateException;
+import de.ciupka.jeopardy.exception.NoQuestionSelectedException;
+import de.ciupka.jeopardy.exception.NotGameMasterException;
+import de.ciupka.jeopardy.exception.NotPlayersTurnException;
+import de.ciupka.jeopardy.exception.PlayerAlreadyExistsException;
+import de.ciupka.jeopardy.exception.PlayerNotFoundException;
+import de.ciupka.jeopardy.exception.QuestionAlreadyAnsweredException;
+import de.ciupka.jeopardy.exception.QuestionAlreadySelectedException;
+import de.ciupka.jeopardy.exception.QuestionNotFoundException;
 import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
@@ -51,10 +64,11 @@ public class MessageController {
      *                  was created when a WebSocket connection was established.
      * @return True if a player was added to the lobby. If a player already exists
      *         with {@code name}, it will return false.
+     * @throws PlayerAlreadyExistsException
      */
     @MessageMapping("/join")
     @SendToUser("/topic/join")
-    public boolean join(String name, UserPrincipal principal) {
+    public boolean join(String name, UserPrincipal principal) throws PlayerAlreadyExistsException {
         final boolean added = this.game.addPlayer(principal.getID(), name);
 
         /**
@@ -73,9 +87,9 @@ public class MessageController {
     }
 
     @MessageMapping("/start-game")
-    public void startGame(UserPrincipal principal) {
-        if (!principal.getID().equals(this.game.getMaster()) || this.game.isActive()) {
-            return;
+    public void startGame(UserPrincipal principal) throws NotGameMasterException, GameAlreadyStartedException {
+        if (!principal.getID().equals(this.game.getMaster())) {
+            throw new NotGameMasterException();
         }
 
         this.game.start();
@@ -85,16 +99,17 @@ public class MessageController {
     }
 
     @MessageMapping("/submit-answer")
-    public boolean submitAnswer(SubmittedAnswer answer, UserPrincipal principal) {
+    public boolean submitAnswer(SubmittedAnswer answer, UserPrincipal principal)
+            throws PlayerNotFoundException, NoQuestionSelectedException, CategoryNotFoundException,
+            QuestionNotFoundException {
         Player answering = this.game.getPlayerByID(principal.getID());
         if (answering == null) {
-            return false;
+            throw new PlayerNotFoundException(principal.getID());
         }
 
         AbstractQuestion<?> question = this.game.getSelectedQuestion();
-
         if (question == null) {
-            return false;
+            throw new NoQuestionSelectedException();
         }
 
         question.addAnswer(answering, answer.getAnswer());
@@ -111,14 +126,20 @@ public class MessageController {
     }
 
     @MessageMapping("/answer")
-    public void answer(AnswerEvaluation answerEval, UserPrincipal principal) {
+    public void answer(AnswerEvaluation answerEval, UserPrincipal principal)
+            throws NotGameMasterException, NoQuestionSelectedException, EvaluatableQuestionAnsweredException,
+            AnswerNotFoundException, CategoryNotFoundException, QuestionNotFoundException {
         if (!principal.getID().equals(this.game.getMaster())) {
-            return;
+            throw new NotGameMasterException();
         }
 
         AbstractQuestion<?> question = game.getSelectedQuestion();
-        if (question == null || question instanceof Evaluatable) {
-            return;
+        if (question == null) {
+            throw new NoQuestionSelectedException();
+        }
+
+        if (question instanceof Evaluatable) {
+            throw new EvaluatableQuestionAnsweredException(question.getType());
         }
 
         Player player = this.game.getPlayerByName(answerEval.getPlayerName());
@@ -132,18 +153,20 @@ public class MessageController {
 
     @MessageMapping("/reveal-answer")
     @SendToUser("/topic/reveal-answer")
-    public String revealAnswer(String player, UserPrincipal principal) {
+    public void revealAnswer(String player, UserPrincipal principal)
+            throws InvalidQuestionStateException, NotGameMasterException, NoQuestionSelectedException,
+            CategoryNotFoundException, QuestionNotFoundException, AnswerNotFoundException {
         if (!principal.getID().equals(this.game.getMaster())) {
-            return "Nur der Gamemaster darf Antworten revealen!";
+            throw new NotGameMasterException();
         }
 
         AbstractQuestion<?> question = game.getSelectedQuestion();
         if (question == null) {
-            return "Aktuell ist keine Frage ausgewählt!";
+            throw new NoQuestionSelectedException();
         }
 
         if (question.getState().ordinal() < QuestionState.LOCK_QUESTION.ordinal()) {
-            return "Die Frage ist noch nicht locked!";
+            throw new InvalidQuestionStateException(question.getState(), QuestionState.LOCK_QUESTION);
         }
 
         Answer<?> answer = question.getAnswerByPlayer(game.getPlayerByName(player));
@@ -151,22 +174,19 @@ public class MessageController {
         answer.setUpdateType(AnswerUpdateType.SHORT_ANSWER);
 
         this.notifications.sendAnswers();
-
-        return null;
     }
 
     @MessageMapping("/question")
     @SendToUser("/topic/question")
-    public String question(QuestionIdentifier identifier, UserPrincipal principal) {
+    public String question(QuestionIdentifier identifier, UserPrincipal principal)
+            throws NotPlayersTurnException, QuestionAlreadyAnsweredException, QuestionAlreadySelectedException,
+            CategoryNotFoundException, QuestionNotFoundException {
         Player active = this.game.getCurrentPlayer();
 
         if (!active.getUuid().equals(principal.getID())) {
-            return "Du bist nicht an der Reihe!";
+            throw new NotPlayersTurnException();
         }
-
-        if (!this.game.selectQuestion(identifier)) {
-            return "Fehler bei der Auswahl der Frage!";
-        }
+        this.game.selectQuestion(identifier);
 
         this.notifications.sendQuestionUpdate();
         this.notifications.sendBoardUpdate();
@@ -185,14 +205,16 @@ public class MessageController {
     }
 
     @MessageMapping("/reveal-question")
-    public void lockQuestion(boolean more, UserPrincipal principal) {
+    public void lockQuestion(boolean more, UserPrincipal principal)
+            throws NotGameMasterException, NoQuestionSelectedException, CategoryNotFoundException,
+            QuestionNotFoundException {
         if (!principal.getID().equals(this.game.getMaster())) {
-            return;
+            throw new NotGameMasterException();
         }
 
         AbstractQuestion<?> question = this.game.getSelectedQuestion();
         if (question == null) {
-            return;
+            throw new NoQuestionSelectedException();
         }
 
         boolean worked = more ? question.revealMore() : question.revealLess();

@@ -1,5 +1,6 @@
 package de.ciupka.jeopardy.game;
 
+import de.ciupka.jeopardy.exception.QuestionNotFoundException;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 
 public class Category {
@@ -22,9 +23,9 @@ public class Category {
         return questions;
     }
 
-    public AbstractQuestion<?> getQuestion(int idx) {
+    public AbstractQuestion<?> getQuestion(int idx) throws QuestionNotFoundException {
         if (idx < 0 || idx >= this.questions.length) {
-            return null; // Maybe throw an Exception instead?
+            throw new QuestionNotFoundException();
         }
         return this.questions[idx];
     }

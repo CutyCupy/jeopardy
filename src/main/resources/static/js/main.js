@@ -2,7 +2,7 @@ import { registerBoard } from "./board.js";
 import { registerGamemaster } from "./gamemaster.js";
 import { registerLobby } from "./lobby.js";
 import { registerQuestion } from "./question.js";
-import { connect } from "./websocket.js";
+import { connect, registerSubscription } from "./websocket.js";
 
 
 registerBoard();
@@ -10,12 +10,16 @@ registerGamemaster();
 registerLobby();
 registerQuestion();
 
+registerSubscription((client) => {
+    client.subscribe("/user/queue/errors", (msg) => {
+        showAlert('danger', msg.body);
+    })
+})
+
 connect();
 
 
 const alertPlaceholder = document.getElementById('alert');
-
-
 
 
 export function callbackClosure(i, callback) {
@@ -46,7 +50,7 @@ export function deriveButtonColors(categoryHex) {
     const hsl = hexToHSL(categoryHex);
 
     // Dunklerer Ton für Button normal
-    let normalL = Math.max(0, hsl.l + 15);
+    let normalL = Math.min(100, hsl.l + 15);
     // Hellerer Ton für Hover
     let hoverL = Math.min(100, hsl.l + 30);
 
