@@ -16,12 +16,6 @@ gamemasterButton.addEventListener('click', becomeGameMaster);
 export const gamemasterAnswers = document.getElementById("gamemaster-answers");
 export const gamemasterArea = document.getElementById("gamemaster-area");
 
-export const revealMore = document.getElementById("reveal-more");
-export const revealLess = document.getElementById("reveal-less");
-
-revealMore.addEventListener('click', () => reveal(true));
-revealLess.addEventListener('click', () => reveal(false));
-
 
 export function registerGamemaster() {
     registerSubscription((client) => {
@@ -53,6 +47,6 @@ function becomeGameMaster() {
     stompClient.send("/app/gamemaster", {});
 }
 
-function reveal(more) {
+export function reveal(more) {
     stompClient.send("/app/reveal-question", {}, more);
 }

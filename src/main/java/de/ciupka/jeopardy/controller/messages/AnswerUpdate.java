@@ -1,6 +1,6 @@
 package de.ciupka.jeopardy.controller.messages;
 
-import de.ciupka.jeopardy.game.questions.Answer;
+import de.ciupka.jeopardy.game.questions.answer.Answer;
 
 public class AnswerUpdate {
 
@@ -8,14 +8,10 @@ public class AnswerUpdate {
     private String answer;
     private Boolean correct;
 
-    public AnswerUpdate(Answer<?> answer) {
-        this(answer, answer.getAnswer().toString());
-    }
-
-    public AnswerUpdate(Answer<?> answer, String answerText) {
+    public AnswerUpdate(Answer<?> answer, boolean master) {
         this.player = answer.getPlayer().getName();
         this.correct = answer.getCorrect();
-        this.answer = answerText;
+        this.answer = answer.asAnswerText(master);
     }
 
     public String getPlayer() {

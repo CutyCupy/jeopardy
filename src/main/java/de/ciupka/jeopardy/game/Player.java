@@ -1,5 +1,6 @@
 package de.ciupka.jeopardy.game;
 
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -48,5 +49,17 @@ public class Player {
 
     public void updateScore(int delta) {
         this.score += delta;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null || getClass() != obj.getClass())
+            return false;
+
+        Player other = (Player) obj;
+        return Objects.equals(name, other.name) &&
+                Objects.equals(uuid, other.uuid);
     }
 }

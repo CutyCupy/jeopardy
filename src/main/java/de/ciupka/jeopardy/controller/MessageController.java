@@ -7,7 +7,6 @@ import org.springframework.stereotype.Controller;
 
 import de.ciupka.jeopardy.configs.UserPrincipal;
 import de.ciupka.jeopardy.controller.messages.AnswerEvaluation;
-import de.ciupka.jeopardy.controller.messages.AnswerUpdateType;
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
 import de.ciupka.jeopardy.controller.messages.SubmittedAnswer;
 import de.ciupka.jeopardy.exception.AnswerNotFoundException;
@@ -23,13 +22,13 @@ import de.ciupka.jeopardy.exception.PlayerNotFoundException;
 import de.ciupka.jeopardy.exception.QuestionAlreadyAnsweredException;
 import de.ciupka.jeopardy.exception.QuestionAlreadySelectedException;
 import de.ciupka.jeopardy.exception.QuestionNotFoundException;
+import de.ciupka.jeopardy.exception.RevealException;
 import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
-import de.ciupka.jeopardy.game.questions.Answer;
 import de.ciupka.jeopardy.game.questions.Evaluatable;
-import de.ciupka.jeopardy.game.questions.QuestionState;
 import de.ciupka.jeopardy.game.questions.Type;
+import de.ciupka.jeopardy.game.questions.answer.Answer;
 import de.ciupka.jeopardy.services.NotificationService;
 
 /**
@@ -165,13 +164,13 @@ public class MessageController {
             throw new NoQuestionSelectedException();
         }
 
-        if (question.getState().ordinal() < QuestionState.LOCK_QUESTION.ordinal()) {
-            throw new InvalidQuestionStateException(question.getState(), QuestionState.LOCK_QUESTION);
+        if (!question.isLocked()) {
+            throw new InvalidQuestionStateException();
         }
 
         Answer<?> answer = question.getAnswerByPlayer(game.getPlayerByName(player));
 
-        answer.setUpdateType(AnswerUpdateType.SHORT_ANSWER);
+        answer.setRevealed(true);
 
         this.notifications.sendAnswers();
     }
@@ -201,13 +200,19 @@ public class MessageController {
 
         this.notifications.sendGameMasterUpdate();
 
+        if (game.isActive()) {
+            notifications.sendBoardUpdate(principal.getID());
+            notifications.sendQuestionUpdate(principal.getID());
+            notifications.sendActivePlayerUpdate(principal.getID());
+        }
+
         return true;
     }
 
     @MessageMapping("/reveal-question")
     public void lockQuestion(boolean more, UserPrincipal principal)
             throws NotGameMasterException, NoQuestionSelectedException, CategoryNotFoundException,
-            QuestionNotFoundException {
+            QuestionNotFoundException, QuestionAlreadyAnsweredException, RevealException {
         if (!principal.getID().equals(this.game.getMaster())) {
             throw new NotGameMasterException();
         }
@@ -220,15 +225,18 @@ public class MessageController {
         boolean worked = more ? question.revealMore() : question.revealLess();
 
         if (worked) {
-            if (more && question.getState().equals(QuestionState.SHOW_ANSWER) && question instanceof Evaluatable) {
+            if (more && question.isAnswered() && question instanceof Evaluatable) {
                 ((Evaluatable<?>) question).evaluateAnswers();
                 this.notifications.sendLobbyUpdate();
             }
         } else {
-            if (question.getState().equals(QuestionState.HIDDEN)) {
-                game.resetQuestion();
-            } else {
+            if (more) {
+                if (question.getAnswers().stream().anyMatch(a -> a.getCorrect() == null)) {
+                    throw new RevealException("Es wurden noch nicht alle Antworten der Frage bewertet!");
+                }
                 game.closeQuestion();
+            } else {
+                game.resetQuestion();
             }
             this.notifications.sendLobbyUpdate();
             this.notifications.sendBoardUpdate();

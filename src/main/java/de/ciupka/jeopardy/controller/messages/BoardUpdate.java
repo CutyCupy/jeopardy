@@ -1,11 +1,13 @@
 package de.ciupka.jeopardy.controller.messages;
 
+import java.util.List;
+
 import de.ciupka.jeopardy.exception.AnswerNotFoundException;
 import de.ciupka.jeopardy.game.Category;
 import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
-import de.ciupka.jeopardy.game.questions.Answer;
+import de.ciupka.jeopardy.game.questions.answer.Answer;
 
 public class BoardUpdate {
 
@@ -43,11 +45,11 @@ public class BoardUpdate {
             this.title = cat.getName();
             this.color = cat.getColorCode();
 
-            AbstractQuestion<?>[] questions = cat.getQuestions();
+            List<AbstractQuestion<?>> questions = cat.getQuestions();
 
-            this.questions = new QuestionUpdate[questions.length];
-            for (int j = 0; j < questions.length; j++) {
-                this.questions[j] = new QuestionUpdate(new QuestionIdentifier(idx, j), questions[j], player);
+            this.questions = new QuestionUpdate[questions.size()];
+            for (int j = 0; j < questions.size(); j++) {
+                this.questions[j] = new QuestionUpdate(new QuestionIdentifier(idx, j), questions.get(j), player);
             }
 
         }

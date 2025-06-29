@@ -83,7 +83,7 @@ public class NotificationService {
             this.message(QUESTION_UPDATE, new HashMap<>(), users);
             return;
         }
-        this.message(QUESTION_UPDATE, new QuestionUpdate(question, game), users);
+        this.message(QUESTION_UPDATE, new QuestionUpdate(game), users);
     }
 
     public void sendGameMasterUpdate(final UUID... users) {
@@ -112,7 +112,7 @@ public class NotificationService {
         }
 
         this.message(ANSWER,
-                selected.getAnswerUpdates(),
+                selected.getAnswers().stream().map(a -> new AnswerUpdate(a, false)),
                 users);
 
     }

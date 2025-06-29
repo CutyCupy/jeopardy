@@ -1,20 +1,19 @@
-package de.ciupka.jeopardy.game.questions;
+package de.ciupka.jeopardy.game.questions.answer;
 
-import de.ciupka.jeopardy.controller.messages.AnswerUpdateType;
 import de.ciupka.jeopardy.game.Player;
+import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 
 public class Answer<T> {
 
     private Player player;
     private T answer;
 
-    private AnswerUpdateType updateType;
     private Boolean correct;
+    private boolean revealed;
 
     public Answer(Player p, T a) {
         this.player = p;
         this.answer = a;
-        this.updateType = AnswerUpdateType.NO_ANSWER;
     }
 
     public Player getPlayer() {
@@ -29,14 +28,6 @@ public class Answer<T> {
         this.answer = answer;
     }
 
-    public AnswerUpdateType getUpdateType() {
-        return updateType;
-    }
-
-    public void setUpdateType(AnswerUpdateType updateType) {
-        this.updateType = updateType;
-    }
-
     public void setCorrect(AbstractQuestion<?> question, boolean correct) {
         this.player.updateScore(correct ? question.getPoints() : question.getWrongPoints());
         this.correct = correct;
@@ -44,6 +35,19 @@ public class Answer<T> {
 
     public Boolean getCorrect() {
         return this.correct;
+    }
+
+    public boolean isRevealed() {
+        return this.revealed;
+    }
+
+    public void setRevealed(boolean reveal) {
+        this.revealed = reveal;
+    }
+
+    public String asAnswerText(boolean master) {
+        String value = answer instanceof Stringable sAns && !master ? sAns.asShortString() : answer.toString();
+        return master || revealed ? value : null;
     }
 
 }

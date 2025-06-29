@@ -2,7 +2,6 @@ package de.ciupka.jeopardy.controller.messages;
 
 import de.ciupka.jeopardy.exception.CategoryNotFoundException;
 import de.ciupka.jeopardy.exception.QuestionNotFoundException;
-import de.ciupka.jeopardy.game.Category;
 import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 
@@ -10,14 +9,13 @@ public class QuestionUpdate {
 
     private QuestionIdentifier id;
 
-    private Category category;
+    private String color;
     private AbstractQuestion<?> question;
 
-    public QuestionUpdate(QuestionIdentifier id, GameService game) {
-        this.id = id;
+    public QuestionUpdate(GameService game) {
         try {
-            this.category = game.getCategory(id.getCategory());
-            this.question = this.category.getQuestion(id.getQuestion());
+            this.question = game.getSelectedQuestion();
+            this.color = this.question.getCategory().getColorCode();
         } catch (CategoryNotFoundException e) {
         } catch (QuestionNotFoundException e) {
         }
@@ -27,8 +25,8 @@ public class QuestionUpdate {
         return id;
     }
 
-    public Category getCategory() {
-        return category;
+    public String getColor() {
+        return color;
     }
 
     public AbstractQuestion<?> getQuestion() {

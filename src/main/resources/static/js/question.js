@@ -1,21 +1,20 @@
-import { gamemasterAnswers, isGameMaster, revealLess, revealMore } from "./gamemaster.js";
-import { deriveButtonColors } from "./main.js";
+import { gamemasterAnswers, isGameMaster, reveal } from "./gamemaster.js";
 import { playerAnswers } from "./player.js";
 import { registerSubscription, stompClient } from "./websocket.js";
 
 var states = ['HIDDEN', 'SHOW_CATEGORY', 'SHOW_QUESTION', 'SHOW_QUESTION_DATA', 'LOCK_QUESTION', 'REVEAL_ANSWERS', 'SHOW_ANSWER']
 
-const question_title = document.getElementById("question-title");
-const question_subtitle = document.getElementById("question-subtitle");
-const question = document.getElementById("question");
-const question_data = document.getElementById("question-data");
+const metadataDiv = document.getElementById("question-metadata");
+const questionDiv = document.getElementById("question-question");
+const hintDiv = document.getElementById("question-hint");
+const answerDiv = document.getElementById("question-answer");
+const closeDiv = document.getElementById("question-close");
 
 var buzzer = document.getElementById("buzzer");
 
 const answerText = document.getElementById("answer-textfield");
 const answerNumber = document.getElementById("answer-numberfield");
 const answerSort = document.getElementById("answer-sort");
-const answer = document.getElementById("answer");
 
 const questionWrapper = document.getElementById("question-wrapper");
 const questionAnswerToolWrapper = document.getElementById("question-answer-tool-wrapper");
@@ -35,7 +34,27 @@ var countdownInterval;
 const COUNTDOWN_LENGTH = 0;
 
 
+function makeStep(step) {
+    var blueprint;
+    switch (step.type) {
+        case "TEXT":
+            blueprint = document.createElement('p');
+            blueprint.innerText = step.content;
+            break;
+        case "IMAGE":
+            break;
+        case "VIDEO":
+            blueprint = document.createElement('div');
+            blueprint.innerHTML = makeVideoHTML(step.content);
+            break;
+        case "AUDIO":
+            break;
+        case "LIST":
+            break;
+    }
 
+    return blueprint;
+}
 
 export function registerQuestion() {
     registerSubscription((client) => {
@@ -46,56 +65,90 @@ export function registerQuestion() {
                 board.style.display = null;
                 return;
             }
-            hideQuestion();
+            hideAnswer();
 
-            var toDisplay = [];
+            var metadataGrp = update.question.groups['METADATA'];
+            var questionGrp = update.question.groups['QUESTION'];
+            var hintGrp = update.question.groups['HINT'];
+            var answerGrp = update.question.groups['ANSWER'];
+
+            metadataDiv.style.setProperty("--color", update.color);
+
+            const addRevealButton = (more, child) => {
+
+                var typ = more ? 'reveal' : 'hide';
+
+                var button = document.createElement("button");
+                button.classList.add(`${typ}-btn`, "btn", `btn-outline-${more ? 'warning' : 'danger'}`, "d-flex", "align-items-center", "gap-2");
+                button.innerHTML = makeIcon(`${more ? 'eye' : 'eye-slash'}`);
+                button.addEventListener('click', () => reveal(more));
 
 
-            var idx = states.indexOf(update.question.state);
+                var wrapper = document.createElement("div");
+                wrapper.classList.add(`${typ}-wrapper`);
+                wrapper.append(button, child);
 
-            revealMore.innerText = states[idx + 1] || "Frage abschließen";
-            revealLess.innerText = states[idx - 1] || "Frage zurücknehmen";
+                return wrapper;
+            }
 
+            var lastRevealed = true;
+            var lastElement;
+            for (var grp of [{ grp: metadataGrp, div: metadataDiv }, { grp: questionGrp, div: questionDiv }, { grp: hintGrp, div: hintDiv }, { grp: answerGrp, div: answerDiv }]) {
+                grp.div.replaceChildren();
+                for (var step of grp.grp.steps) {
+                    if (step.revealed || isGameMaster) {
+                        var child = makeStep(step);
+                        if (!step.revealed && lastRevealed) {
+                            child = addRevealButton(true, child);
 
-            const showCategory = states.indexOf('SHOW_CATEGORY') <= idx || isGameMaster;
-            const showQuestion = states.indexOf('SHOW_QUESTION') <= idx || isGameMaster;
-            const showQuestionData = states.indexOf('SHOW_QUESTION_DATA') <= idx || isGameMaster;
-            const isLocked = states.indexOf('LOCK_QUESTION') <= idx;
-            const showAnswer = states.indexOf('SHOW_ANSWER') <= idx;
+                            if (lastElement) {
+                                var parent = lastElement.parentNode;
 
-            const { buttonNormal } = deriveButtonColors(update.category.colorCode);
+                                lastElement.remove();
 
-
-            question_title.innerText = `${update.category.name} - ${update.question.points} Punkte`;
-            question_title.style.setProperty("--color", update.category.colorCode)
-            question_subtitle.innerText = `${update.question.type.title} - ${update.question.type.penalty ? '' : 'keine '}Minuspunkte`
-            question_subtitle.style.setProperty("--color", buttonNormal)
-            question.innerText = update.question.question;
-
-            if (showCategory) {
-                board.style.display = 'none';
-
-                toDisplay.push(question_title);
-                toDisplay.push(question_subtitle);
-                if (update.question.type.name === 'NORMAL') {
-                    toDisplay.push(buzzer);
+                                parent.appendChild(addRevealButton(false, lastElement));
+                            }
+                        }
+                        lastElement = child;
+                        grp.div.appendChild(child);
+                    }
+                    lastRevealed = step.revealed;
                 }
             }
 
-            if (showQuestion) {
-                toDisplay.push(question);
+            if (lastRevealed && isGameMaster) {
+                var closeQuestionButton = document.createElement("button");
+                closeQuestionButton.classList.add("btn-end-question", "btn", "btn-outline-warning", "d-flex", "align-items-center", "gap-2");
+                closeQuestionButton.innerHTML = makeIcon("check-circle-fill");
+                closeQuestionButton.innerText = "Frage abschließen";
+                closeQuestionButton.addEventListener('click', () => reveal(true));
+                closeDiv.replaceChildren(closeQuestionButton);
 
+                if (lastElement) {
+                    var parent = lastElement.parentNode;
+
+                    lastElement.remove();
+
+                    parent.appendChild(addRevealButton(false, lastElement));
+                }
+            }
+
+
+            if (metadataGrp.started) {
+                board.style.display = 'none';
+            }
+            if (metadataGrp.complete) {
                 switch (update.question.type.name) {
                     case 'NORMAL':
-                        toDisplay.push(buzzer);
+                        buzzer.style.display = null;
                         break;
                     case 'TEXT':
                         updateSubmitButton(() => {
                             submitAnswer(answerText.value);
                         });
 
-                        toDisplay.push(answerText);
-                        toDisplay.push(submitButton);
+                        answerText.style.display = null;
+                        submitButton.style.display = null;
                         break;
                     case 'ESTIMATE':
                         updateSubmitButton(() => {
@@ -103,29 +156,19 @@ export function registerQuestion() {
                         });
 
 
-                        toDisplay.push(answerNumber);
-                        toDisplay.push(submitButton);
+                        answerNumber.style.display = null;
+                        submitButton.style.display = null;
                         break;
                     case 'VIDEO':
-                        toDisplay.push(answerText);
-                        if (showQuestionData) {
-                            if (!isGameMaster) {
-                                if (!question_data.innerHTML) {
-                                    question_data.innerHTML = makeVideoHTML(update.question.path);
-                                }
-                            }
-                            toDisplay.push(question_data);
-                        }
                         updateSubmitButton(() => {
                             submitAnswer(answerText.value);
                         });
 
-                        toDisplay.push(submitButton);
+                        answerText.style.display = null;
+                        submitButton.style.display = null;
                         break;
                     case 'SORT':
-                        if (!showQuestionData) {
-                            answerSort.replaceChildren();
-
+                        if (questionGrp.started && !answerSort.children.length) {
                             for (var entry of update.question.options) {
                                 const row = document.createElement("div");
                                 row.classList.add("bg-white", "border", "border-4", "border-secondary", "p-2", "m-1", "text-center");
@@ -143,94 +186,67 @@ export function registerQuestion() {
 
                                 answerSort.appendChild(row);
                             }
+                            updateSubmitButton(() => {
+                                submitAnswer(Array.from(answerSort.children).map((v) => {
+                                    return { name: v.innerText, value: 0 }
+                                }));
+                            });
                         }
 
-                        updateSubmitButton(() => {
-                            submitAnswer(Array.from(answerSort.children).map((v) => {
-                                return { name: v.innerText, value: 0 }
-                            }));
-                        });
 
-                        toDisplay.push(answerSort);
-                        toDisplay.push(submitButton);
+                        answerSort.style.display = null;
+                        submitButton.style.display = null;
                         break;
                 }
             }
 
 
-            if (isLocked && !showAnswer) {
-                countdown = COUNTDOWN_LENGTH;
-                const diameter = 2 * Math.PI * 90; // TODO: Maybe hardcode the radius?
+            // if (isLocked && !showAnswer) {
+            //     countdown = COUNTDOWN_LENGTH;
+            //     const diameter = 2 * Math.PI * 90; // TODO: Maybe hardcode the radius?
 
-                var cb = function () {
-                    countdownWrapper.style.display = null;
+            //     var cb = function () {
+            //         countdownWrapper.style.display = null;
 
-                    countdownText.innerHTML = `${countdown}s`;
-                    countdownCircle.style.strokeDashoffset = (1 - (countdown / COUNTDOWN_LENGTH)) * diameter;
-                    if (countdown < 0) {
-                        // countdownEndAudio.play();
-                        countdownWrapper.style.display = 'none';
-                        clearInterval(countdownInterval);
+            //         countdownText.innerHTML = `${countdown}s`;
+            //         countdownCircle.style.strokeDashoffset = (1 - (countdown / COUNTDOWN_LENGTH)) * diameter;
+            //         if (countdown < 0) {
+            //             // countdownEndAudio.play();
+            //             countdownWrapper.style.display = 'none';
+            //             clearInterval(countdownInterval);
 
-                        switch (update.question.type.name) {
-                            case 'NORMAL':
-                                updateBuzzerState(false);
-                                break;
-                            case 'VIDEO':
-                                question_data.innerHTML = '';
-                                question_data.replaceChildren();
-                            default:
-                                submitButton.click();
-                                break;
-                        }
-
-
-                        toDisplay.forEach((v) => {
-                            v.readOnly = true;
-                            v.style.pointerEvents = 'none';
-                        });
-
-                        return;
-                    }
-                    countdown--;
-                    // countdownBeepAudio.play();
-                }
-                cb();
-                countdownInterval = setInterval(cb, 1000);
-            } else if (!showAnswer) {
-                toDisplay.forEach((v) => {
-                    v.readOnly = false;
-                    v.style.pointerEvents = 'auto';
-                });
-            }
+            //             switch (update.question.type.name) {
+            //                 case 'NORMAL':
+            //                     updateBuzzerState(false);
+            //                     break;
+            //                 case 'VIDEO':
+            //                     question_data.innerHTML = '';
+            //                     question_data.replaceChildren();
+            //                 default:
+            //                     submitButton.click();
+            //                     break;
+            //             }
 
 
-            if (showAnswer || isGameMaster) {
-                switch (update.question.type.name) {
-                    case 'NORMAL':
-                    case 'TEXT':
-                    case 'ESTIMATE':
-                        const span = document.createElement("span");
-                        span.innerText = update.question.answer;
+            //             toDisplay.forEach((v) => {
+            //                 v.readOnly = true;
+            //                 v.style.pointerEvents = 'none';
+            //             });
 
-                        answer.replaceChildren(span);
-                        break;
-                    case 'VIDEO':
-                        question_data.innerHTML = '';
-                        if (!answer.innerHTML) {
-                            answer.innerHTML = makeVideoHTML(update.question.answer);
-                        }
-                        break;
-                    case 'SORT':
-                        answer.innerText = update.question.answer.map((v) => `${v.name} (${v.value})`).join(", ");
-                        break;
-                }
-                toDisplay.push(answer);
-            }
+            //             return;
+            //         }
+            //         countdown--;
+            //         // countdownBeepAudio.play();
+            //     }
+            //     cb();
+            //     countdownInterval = setInterval(cb, 1000);
+            // } else if (!showAnswer) {
+            //     toDisplay.forEach((v) => {
+            //         v.readOnly = false;
+            //         v.style.pointerEvents = 'auto';
+            //     });
+            // }
 
-            toDisplay.forEach((v) => {
-                v.style.display = null;
-            });
         }
 
         function onAnswerUpdate(msg) {
@@ -247,10 +263,14 @@ export function registerQuestion() {
                 const nameID = `name:${answer.player}`;
                 const answerID = `answer:${answer.player}`;
                 const judgeID = `judge:${answer.player}`;
+                const wrongID = `wrong:${answer.player}`;
+                const correctID = `correct:${answer.player}`;
+                const revealID = `reveal:${answer.player}`;
 
                 var row = document.getElementById(rowID) || myAnswers.insertRow(-1);
                 row.classList.remove("table-success");
                 row.classList.remove("table-danger");
+                row.classList.add("text-center");
 
                 row.id = rowID;
                 if (answer.correct === false) {
@@ -273,42 +293,57 @@ export function registerQuestion() {
                     continue;
                 }
 
-                if (!document.getElementById(judgeID)) {
-                    var judgeCell = row.insertCell(-1);
-                    judgeCell.id = judgeID;
-                    row.classList.add("text-center");
+                var judgeCell = document.getElementById(judgeID) || row.insertCell(-1);
+                judgeCell.id = judgeID;
 
-                    var correctButton = document.createElement("button");
-                    var wrongButton = document.createElement("button");
-                    var revealButton = document.createElement("button");
+                var correctButton = document.getElementById(correctID) || document.createElement("button");
+                correctButton.id = correctID;
 
+                var wrongButton = document.getElementById(wrongID) || document.createElement("button");
+                wrongButton.id = wrongID;
+
+                if (answer.evaluatable) {
+                    correctButton.remove();
+                    wrongButton.remove();
+                } else {
                     var eventListenerFactory = (correct) => function () {
                         client.send("/app/answer", {}, JSON.stringify({
                             playerName: answer.player,
                             isCorrect: correct,
                         }))
-
-                        wrongButton.disabled = true;
-                        correctButton.disabled = true;
                     }
-
                     correctButton.classList.add("btn", "btn-success", "mx-1");
-                    correctButton.innerHTML = makeIcon("check-lg")
+                    correctButton.innerHTML = makeIcon("check-lg");
+                    correctButton.disabled = answer.correct != null;
                     correctButton.addEventListener('click', eventListenerFactory(true))
 
-                    wrongButton.classList.add("btn", "btn-danger", "mx-1");
-                    wrongButton.innerHTML = makeIcon("x-lg")
-                    wrongButton.addEventListener('click', eventListenerFactory(false))
 
+                    wrongButton.classList.add("btn", "btn-danger", "mx-1");
+                    wrongButton.innerHTML = makeIcon("x-lg");
+                    wrongButton.disabled = answer.correct != null;
+                    wrongButton.addEventListener('click', eventListenerFactory(false));
+
+
+                    if (!correctButton.parentNode && !wrongButton.parentNode) {
+                        judgeCell.appendChild(correctButton);
+                        judgeCell.appendChild(wrongButton);
+                    }
+                }
+
+                var revealButton = document.getElementById(revealID) || document.createElement("button");
+                revealButton.id = revealID;
+
+                if (answer.revealed) {
+                    revealButton.remove();
+                } else {
                     revealButton.classList.add("btn", "btn-warning", "mx-1");
                     revealButton.innerHTML = makeIcon("search")
                     revealButton.addEventListener('click', function () {
                         client.send("/app/reveal-answer", {}, answer.player);
                     })
-
-                    judgeCell.appendChild(correctButton);
-                    judgeCell.appendChild(wrongButton);
-                    judgeCell.appendChild(revealButton);
+                    if (!revealButton.parentNode) {
+                        judgeCell.appendChild(revealButton);
+                    }
                 }
             }
         }
@@ -347,10 +382,7 @@ export function registerQuestion() {
 
 }
 
-function hideQuestion() {
-    Array.from(questionWrapper.children).forEach((v) => {
-        v.style.display = 'none';
-    });
+function hideAnswer() {
     Array.from(questionAnswerToolWrapper.children).forEach((v) => {
         v.style.display = 'none';
     });
@@ -373,16 +405,17 @@ function resetQuestion() {
     updateBuzzerState(true);
     answerText.value = '';
     answerNumber.value = '';
+    answerSort.replaceChildren();
+
+    metadataDiv.replaceChildren();
+    questionDiv.replaceChildren();
+    hintDiv.replaceChildren();
+    answerDiv.replaceChildren();
 
     gamemasterAnswers.replaceChildren();
     playerAnswers.replaceChildren();
-    question_data.replaceChildren();
-    question_data.innerHTML = '';
 
-    answer.replaceChildren();
-    answer.innerHTML = '';
-
-    hideQuestion();
+    hideAnswer();
 }
 
 
