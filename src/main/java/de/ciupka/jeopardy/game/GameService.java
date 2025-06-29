@@ -17,13 +17,13 @@ import de.ciupka.jeopardy.exception.QuestionAlreadyAnsweredException;
 import de.ciupka.jeopardy.exception.QuestionAlreadySelectedException;
 import de.ciupka.jeopardy.exception.QuestionNotFoundException;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
-import de.ciupka.jeopardy.game.questions.Answer;
 import de.ciupka.jeopardy.game.questions.EstimateQuestion;
 import de.ciupka.jeopardy.game.questions.Question;
-import de.ciupka.jeopardy.game.questions.SortOption;
 import de.ciupka.jeopardy.game.questions.SortQuestion;
 import de.ciupka.jeopardy.game.questions.TextQuestion;
 import de.ciupka.jeopardy.game.questions.VideoQuestion;
+import de.ciupka.jeopardy.game.questions.answer.Answer;
+import de.ciupka.jeopardy.game.questions.answer.SortOption;
 
 @Service
 public class GameService {
@@ -35,75 +35,82 @@ public class GameService {
     private int currentPlayerIdx = -1;
     private UUID master;
 
-    public GameService() {
+    public GameService() throws CategoryNotFoundException {
         this.players = new ArrayList<>();
 
+        Category twitch = new Category("Twitch", "#4D3280");
+        twitch.addQuestion(
+                new EstimateQuestion(
+                        twitch,
+                        "Wieviele Nachrichten habe ich in Chats im Mai 2025 von Streamern aus unserer Freundesgruppe geschrieben? (Sleep, Chris, Lasse, Leonie, Lari, Selina)",
+                        100, 88 + 16 + 613 + 1703 + 14 + 308));
+        twitch.addQuestion(new Question(twitch, "Wie teuer ist ein Tier-3 Sub aktuell?", 400,
+                "19,99€ (zumindest wenn ich bei Attix jetzt Tier-3 subben würde)"));
+        twitch.addQuestion(new SortQuestion(twitch,
+                "Ordne die folgenden Streamer basierend auf ihren Subs (von den Meisten zu den Wenigsten)",
+                700,
+                new SortOption[] {
+                        new SortOption("Papaplatte", 5000),
+                        new SortOption("NoWay4U_Sir", 4000),
+                        new SortOption("Gronkh", 3000),
+                        new SortOption("Tolkin", 2000),
+                        new SortOption("RvNxMango", 1000),
+                        new SortOption("Mahluna", 0000)
+                }));
+        twitch.addQuestion(new TextQuestion(
+                twitch,
+                "Welches Emote wurde 2021 aufgrund von kontroversen Tweets des 'Originals' entfernt?",
+                1000,
+                "PogChamp"));
+        Category tierwelt = new Category("Tierwelt", "#506837");
+        tierwelt.addQuestion(
+                new SortQuestion(tierwelt, "Sortiere diese Tiere nach ihrer Größe (die Größten zuerst)", 100,
+                        new SortOption[] {
+                                new SortOption("Elefant", 100),
+                                new SortOption("Pferd", 80),
+                                new SortOption("Schaf", 60),
+                                new SortOption("Katze", 40),
+                                new SortOption("Igel", 20),
+                                new SortOption("Ameise", 10),
+                        }));
+        tierwelt.addQuestion(
+                new EstimateQuestion(tierwelt, "Wieviel Kilogramm Krill ist ein Blauwal pro Tag im Schnitt?", 400,
+                        7000));
+        tierwelt.addQuestion(new EstimateQuestion(tierwelt,
+                "Wie schnell war die schnellste aufgezeichnete Hauskatze (in km/h)?", 700,
+                48));
+        tierwelt.addQuestion(new Question(tierwelt, "Wieviele Mägen hat eine Kuh?", 1000, "Vier"));
+
+        Category lol = new Category("League of Legends",
+                "#9E8C49");
+
+        lol.addQuestion(new Question(lol, "Wieviele Schwänze hat Ahri?", 100, "9"));
+        lol.addQuestion(new EstimateQuestion(lol, "Wieviel Range hat Caitlyn?", 400, 650));
+        lol.addQuestion(new TextQuestion(lol, "Welchen Champion spielte Faker in seinem Pro Debüt?", 700, "Nidalee"));
+        lol.addQuestion(new VideoQuestion(lol, "Was passiert als nächstes?", 1000, "2dz8zb",
+                "Blaber flashed und stirbt für die Krabbe", "ga4ln4"));
+
+        Category valo = new Category("Valorant",
+                "#B93B3B");
+        valo.addQuestion(new Question(valo, "Wieviele Waffen gibt es in VALORANT?", 100, "18"));
+        valo.addQuestion(new SortQuestion(valo,
+                "Ordne die folgenden Waffen basierend auf ihre Magazingröße (von den Meisten zu den Wenigsten)",
+                400,
+                new SortOption[] {
+                        new SortOption("Odin", 100),
+                        new SortOption("Phantom", 30),
+                        new SortOption("Vandal", 25),
+                        new SortOption("Guardian", 12),
+                        new SortOption("Sheriff", 6),
+                        new SortOption("Operator", 5)
+                }));
+        valo.addQuestion(new Question(valo, "Welcher Agent kommt aus Schweden?", 700, "Breach"));
+        valo.addQuestion(new EstimateQuestion(valo,
+                "Wieviel HP hat die Harbor Sphere (oder Smoke - ka wie man das Ding nennen soll)",
+                1000, 500));
+
         this.board = new Category[] {
-                new Category("Twitch",
-                        "#4D3280",
-                        new EstimateQuestion(
-                                "Wieviele Nachrichten habe ich in Chats im Mai 2025 von Streamern aus unserer Freundesgruppe geschrieben? (Sleep, Chris, Lasse, Leonie, Lari, Selina)",
-                                100,
-                                88 + 16 + 613 + 1703 + 14 + 308),
-                        new Question("Wie teuer ist ein Tier-3 Sub aktuell?", 400,
-                                "19,99€ (zumindest wenn ich bei Attix jetzt Tier-3 subben würde)"),
-                        new SortQuestion(
-                                "Ordne die folgenden Streamer basierend auf ihren Subs (von den Meisten zu den Wenigsten)",
-                                700,
-                                new SortOption[] {
-                                        new SortOption("Papaplatte", 5000),
-                                        new SortOption("NoWay4U_Sir", 4000),
-                                        new SortOption("Gronkh", 3000),
-                                        new SortOption("Tolkin", 2000),
-                                        new SortOption("RvNxMango", 1000),
-                                        new SortOption("Mahluna", 0000)
-                                }),
-                        new TextQuestion(
-                                "Welches Emote wurde 2021 aufgrund von kontroversen Tweets des 'Originals' entfernt?",
-                                1000,
-                                "PogChamp")),
-
-                new Category("Tierwelt",
-                        "#506837",
-                        new SortQuestion("Sortiere diese Tiere nach ihrer Größe (die Größten zuerst)", 100,
-                                new SortOption[] {
-                                        new SortOption("Elefant", 100),
-                                        new SortOption("Pferd", 80),
-                                        new SortOption("Schaf", 60),
-                                        new SortOption("Katze", 40),
-                                        new SortOption("Igel", 20),
-                                        new SortOption("Ameise", 10),
-                                }),
-                        new EstimateQuestion("Wieviel Kilogramm Krill ist ein Blauwal pro Tag im Schnitt?", 400,
-                                7000),
-                        new EstimateQuestion("Wie schnell war die schnellste aufgezeichnete Hauskatze (in km/h)?", 700,
-                                48),
-                        new Question("Wieviele Mägen hat eine Kuh?", 1000, "Vier")),
-
-                new Category("League of Legends",
-                        "#9E8C49",
-                        new Question("Wieviele Schwänze hat Ahri?", 100, "9"),
-                        new EstimateQuestion("Wieviel Range hat Caitlyn?", 400, 650),
-                        new TextQuestion("Welchen Champion spielte Faker in seinem Pro Debüt?", 700, "Nidalee"),
-                        new VideoQuestion("Was passiert als nächstes?", 1000, "2dz8zb", "ga4ln4")),
-                new Category("Valorant",
-                        "#B93B3B",
-                        new Question("Wieviele Waffen gibt es in VALORANT?", 100, "18"),
-                        new SortQuestion(
-                                "Ordne die folgenden Waffen basierend auf ihre Magazingröße (von den Meisten zu den Wenigsten)",
-                                400,
-                                new SortOption[] {
-                                        new SortOption("Odin", 100),
-                                        new SortOption("Phantom", 30),
-                                        new SortOption("Vandal", 25),
-                                        new SortOption("Guardian", 12),
-                                        new SortOption("Sheriff", 6),
-                                        new SortOption("Operator", 5)
-                                }),
-                        new Question("Welcher Agent kommt aus Schweden?", 700, "Breach"),
-                        new EstimateQuestion(
-                                "Wieviel HP hat die Harbor Sphere (oder Smoke - ka wie man das Ding nennen soll)",
-                                1000, 500)),
+                twitch, tierwelt, lol, valo
         };
     }
 
@@ -153,6 +160,13 @@ public class GameService {
     }
 
     public void resetQuestion() {
+        try {
+            AbstractQuestion<?> question = getSelectedQuestion();
+            question.reset();
+        } catch (Exception e) {
+
+        }
+
         this.selectedQuestionIdentifier = null;
     }
 
@@ -203,13 +217,17 @@ public class GameService {
     }
 
     public void closeQuestion()
-            throws NoQuestionSelectedException, CategoryNotFoundException, QuestionNotFoundException {
+            throws NoQuestionSelectedException, CategoryNotFoundException, QuestionNotFoundException,
+            QuestionAlreadyAnsweredException {
         AbstractQuestion<?> question = this.getSelectedQuestion();
         if (question == null) {
             throw new NoQuestionSelectedException();
         }
 
-        question.setAnswered(true);
+        if (!question.isAnswered()) {
+            throw new QuestionAlreadyAnsweredException();
+        }
+
         selectedQuestionIdentifier = null;
         currentPlayerIdx = (currentPlayerIdx + 1) % this.players.size();
     }

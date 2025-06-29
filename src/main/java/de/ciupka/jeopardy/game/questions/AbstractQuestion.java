@@ -1,34 +1,62 @@
 package de.ciupka.jeopardy.game.questions;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 
-import de.ciupka.jeopardy.controller.messages.AnswerUpdate;
 import de.ciupka.jeopardy.exception.AnswerNotFoundException;
+import de.ciupka.jeopardy.exception.RevealException;
+import de.ciupka.jeopardy.game.Category;
 import de.ciupka.jeopardy.game.Player;
+import de.ciupka.jeopardy.game.questions.answer.Answer;
+import de.ciupka.jeopardy.game.questions.reveal.Group;
+import de.ciupka.jeopardy.game.questions.reveal.GroupType;
+import de.ciupka.jeopardy.game.questions.reveal.Step;
+import de.ciupka.jeopardy.game.questions.reveal.StepType;
 
 public abstract class AbstractQuestion<T> {
-    private String question;
-    private int points;
-    private T answer;
-    private Type type;
-    private boolean answered;
 
-    private QuestionState state;
+    private final Type type;
+    private final int points;
+    private final T answer;
+
+    private boolean locked;
 
     @JsonIgnore
-    private List<Answer<T>> answers = new ArrayList<>();
+    private final Category category;
 
-    public AbstractQuestion(String question, int points, T answer, Type type) {
-        this.question = question;
+    private final Map<GroupType, Group> groups = new EnumMap<>(GroupType.class);
+
+    @JsonIgnore
+    private final List<Answer<T>> answers = new ArrayList<>();
+
+    public AbstractQuestion(Category category, String questionText, int points, T answer, Type type) {
+        this.category = category;
         this.points = points;
         this.answer = answer;
         this.type = type;
-        this.state = QuestionState.HIDDEN;
+
+        initDefaultGroups(questionText);
+    }
+
+    private void initDefaultGroups(String questionText) {
+        groups.put(GroupType.METADATA, new Group(GroupType.METADATA)
+                .addStep(new Step(StepType.TEXT, String.format("%s - %d Punkte", category.getName(), points)))
+                .addStep(new Step(StepType.TEXT, type.getTitle())));
+
+        groups.put(GroupType.QUESTION, new Group(GroupType.QUESTION)
+                .addStep(new Step(StepType.TEXT, questionText)));
+
+        groups.put(GroupType.HINT, new Group(GroupType.HINT));
+        groups.put(GroupType.ANSWER, new Group(GroupType.ANSWER));
+    }
+
+    public T getAnswer() {
+        return answer;
     }
 
     public int getPoints() {
@@ -36,81 +64,105 @@ public abstract class AbstractQuestion<T> {
     }
 
     public int getWrongPoints() {
-        return this.type.getHasPenalty() ? 0 : -getPoints();
-    }
-
-    public String getQuestion() {
-        return question;
-    }
-
-    public T getAnswer() {
-        return answer;
+        return type.getHasPenalty() ? 0 : -getPoints();
     }
 
     public boolean isAnswered() {
-        return this.answered;
-    }
-
-    public void setAnswered(boolean answered) {
-        this.answered = answered;
+        if (answers.stream().anyMatch(a -> a.getCorrect() == null || !a.isRevealed())) {
+            return false;
+        }
+        return groups.get(GroupType.ANSWER).isComplete();
     }
 
     public Type getType() {
-        return this.type;
+        return type;
+    }
+
+    public Map<GroupType, Group> getGroups() {
+        return groups;
+    }
+
+    public boolean revealMore() throws RevealException {
+        for (GroupType type : GroupType.values()) {
+            Group grp = groups.get(type);
+            Step step = grp.getNextStep();
+            if (step == null) {
+                continue;
+            }
+
+            switch (type) {
+                case ANSWER:
+                    if (!grp.isStarted() && !isLocked()) {
+                        throw new RevealException("Die Frage ist noch nicht gelocked!");
+                    }
+            }
+
+            step.setRevealed(true);
+            return true;
+
+        }
+        return false;
+    }
+
+    public boolean revealLess() {
+        GroupType[] values = GroupType.values();
+        for (int i = values.length - 1; i >= 0; i--) {
+            Group grp = groups.get(values[i]);
+            Step step = grp.getLatestStep();
+            if (step == null) {
+                continue;
+            }
+            step.setRevealed(false);
+            return true;
+        }
+        return false;
     }
 
     protected abstract Answer<T> parseAnswer(JsonNode node, Player player);
 
-    public List<AnswerUpdate> getAnswerUpdates() {
-        return answers.stream().map((a) -> {
-            switch (a.getUpdateType()) {
-                case SHORT_ANSWER, FULL_ANSWER:
-                    return new AnswerUpdate(a);
-                default:
-                    return new AnswerUpdate(a, null);
-            }
-        }).toList();
+    public void addAnswer(Player player, JsonNode node) {
+        Answer<T> newAnswer = parseAnswer(node, player);
+        getAnswers()
+                .stream()
+                .filter(a -> a.getPlayer().equals(player))
+                .findFirst()
+                .ifPresentOrElse(
+                        a -> a.setAnswer(newAnswer.getAnswer()),
+                        () -> answers.add(newAnswer));
     }
 
-    public QuestionState getState() {
-        return state;
+    public void removeAnswer(Player player) {
+        answers.removeIf(a -> a.getPlayer().equals(player));
     }
 
-    public boolean revealMore() {
-        QuestionState old = state;
-        state = state.next();
-        return !old.equals(state);
-    }
-
-    public boolean revealLess() {
-        QuestionState old = state;
-        state = state.previous();
-        return !old.equals(state);
+    public Answer<T> getAnswerByPlayer(Player p) throws AnswerNotFoundException {
+        return answers.stream()
+                .filter(a -> a.getPlayer().equals(p))
+                .findFirst()
+                .orElseThrow(() -> new AnswerNotFoundException(p));
     }
 
     public List<Answer<T>> getAnswers() {
         return answers;
     }
 
-    public Answer<T> getAnswerByPlayer(Player p) throws AnswerNotFoundException {
-        Optional<Answer<T>> existing = answers.stream().filter((a) -> a.getPlayer().equals(p))
-                .findFirst();
-        if (!existing.isPresent()) {
-            throw new AnswerNotFoundException(p);
-        }
-        return existing.get();
+    public void setLocked(boolean locked) throws RevealException {
+        this.locked = locked;
     }
 
-    public void addAnswer(Player p, JsonNode answer) {
-        Optional<Answer<T>> existing = answers.stream().filter((a) -> a.getPlayer().equals(p))
-                .findFirst();
+    public boolean isLocked() {
+        return locked;
+    }
 
-        Answer<T> newAnswer = parseAnswer(answer, p);
+    public Category getCategory() {
+        return category;
+    }
 
-        if (existing.isPresent()) {
-            existing.get().setAnswer(newAnswer.getAnswer());
-            return;
+    public void reset() {
+        this.answers.clear();
+
+        for (Group grp : groups.values()) {
+            grp.reset();
         }
-        answers.add(newAnswer);
     }
 }

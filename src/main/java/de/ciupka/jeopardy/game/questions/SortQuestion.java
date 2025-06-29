@@ -9,84 +9,80 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import de.ciupka.jeopardy.controller.messages.AnswerUpdate;
+import de.ciupka.jeopardy.game.Category;
 import de.ciupka.jeopardy.game.Player;
+import de.ciupka.jeopardy.game.questions.answer.Answer;
+import de.ciupka.jeopardy.game.questions.answer.SortOption;
+import de.ciupka.jeopardy.game.questions.reveal.GroupType;
+import de.ciupka.jeopardy.game.questions.reveal.Step;
+import de.ciupka.jeopardy.game.questions.reveal.StepType;
 
-public class SortQuestion extends AbstractQuestion<SortOption[]>
-        implements Evaluatable<SortOption[]> {
+public class SortQuestion extends AbstractQuestion<SortOption[]> implements Evaluatable<SortOption[]> {
 
     private String[] options;
 
-    public SortQuestion(String question, int points, SortOption[] answer) {
-        super(question, points, answer, Type.SORT);
+    public SortQuestion(Category category, String question, int points, SortOption[] answer) {
+        super(category, question, points, answer, Type.SORT);
 
-        List<String> options = new ArrayList<>(List.of(answer).stream().map((t) -> t.getName()).toList());
-        Collections.shuffle(options);
+        List<String> optionList = Arrays.stream(answer)
+                .map(SortOption::getName)
+                .collect(Collectors.toList());
 
-        this.options = options.toArray(new String[options.size()]);
+        Collections.shuffle(optionList);
+        this.options = optionList.toArray(String[]::new);
+
+        getGroups().get(GroupType.ANSWER)
+                .addStep(new Step(
+                        StepType.TEXT,
+                        Arrays.stream(answer)
+                                .map(SortOption::toString)
+                                .collect(Collectors.joining(", "))));
     }
 
     @Override
     protected Answer<SortOption[]> parseAnswer(JsonNode node, Player player) {
         ObjectMapper mapper = new ObjectMapper();
-        return new Answer<SortOption[]>(player, mapper.convertValue(node, SortOption[].class));
-    }
-
-    @Override
-    public List<AnswerUpdate> getAnswerUpdates() {
-        return getAnswers().stream().map((a) -> {
-            switch (a.getUpdateType()) {
-                case FULL_ANSWER:
-                    return new AnswerUpdate(a,
-                            Arrays.stream(a.getAnswer()).map(SortOption::toString).collect(Collectors.joining(", ")));
-                case SHORT_ANSWER:
-                    return new AnswerUpdate(a,
-                            Arrays.stream(a.getAnswer()).map(SortOption::getName).collect(Collectors.joining(", ")));
-                default:
-                    return new AnswerUpdate(a, null);
-            }
-        }).toList();
+        return new Answer<>(player, mapper.convertValue(node, SortOption[].class));
     }
 
     @Override
     public void evaluateAnswers() {
-        int max = -1;
-        List<Answer<SortOption[]>> right = new ArrayList<>();
-
-        SortOption[] correctAnswer = getAnswer();
+        int maxCorrect = -1;
+        List<Answer<SortOption[]>> best = new ArrayList<>();
+        SortOption[] correctOrder = getAnswer();
 
         for (Answer<SortOption[]> answer : getAnswers()) {
+            SortOption[] playerOrder = answer.getAnswer();
             int corrects = 0;
-            SortOption[] ans = answer.getAnswer();
-            for (int i = 0; i < ans.length; i++) {
-                if (ans[i].getName().equals(correctAnswer[i].getName())) {
+
+            for (int i = 0; i < playerOrder.length; i++) {
+                if (playerOrder[i].getName().equals(correctOrder[i].getName())) {
                     corrects++;
                 }
             }
-            if (corrects < max) {
+
+            if (corrects < maxCorrect) {
                 answer.setCorrect(this, false);
                 continue;
             }
-            if (corrects > max) {
-                max = corrects;
-                for (Answer<SortOption[]> a : right) {
+
+            if (corrects > maxCorrect) {
+                maxCorrect = corrects;
+                for (Answer<SortOption[]> a : best) {
                     a.setCorrect(this, false);
                 }
-
-                right.clear();
+                best.clear();
             }
 
-            right.add(answer);
+            best.add(answer);
         }
 
-        for (Answer<SortOption[]> a : right) {
+        for (Answer<SortOption[]> a : best) {
             a.setCorrect(this, true);
         }
-
     }
 
     public String[] getOptions() {
         return options;
     }
-
 }

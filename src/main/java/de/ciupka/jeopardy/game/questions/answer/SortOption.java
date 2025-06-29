@@ -1,4 +1,4 @@
-package de.ciupka.jeopardy.game.questions;
+package de.ciupka.jeopardy.game.questions.answer;
 
 import java.text.DecimalFormat;
 
