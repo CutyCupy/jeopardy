@@ -160,6 +160,13 @@ public class GameService {
     }
 
     public void resetQuestion() {
+        try {
+            AbstractQuestion<?> question = getSelectedQuestion();
+            question.reset();
+        } catch (Exception e) {
+
+        }
+
         this.selectedQuestionIdentifier = null;
     }
 

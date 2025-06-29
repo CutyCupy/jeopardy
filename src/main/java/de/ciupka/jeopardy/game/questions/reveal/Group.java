@@ -43,4 +43,10 @@ public class Group {
                 .filter(s -> s.isRevealed())
                 .reduce((first, second) -> second).orElse(null);
     }
+
+    public void reset() {
+        for (Step step : steps) {
+            step.setRevealed(false);
+        }
+    }
 }

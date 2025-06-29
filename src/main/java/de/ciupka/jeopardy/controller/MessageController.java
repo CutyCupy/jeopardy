@@ -175,6 +175,29 @@ public class MessageController {
         this.notifications.sendAnswers();
     }
 
+    @MessageMapping("/remove-answer")
+    public void removeAnswer(String name, UserPrincipal principal) throws NotGameMasterException,
+            CategoryNotFoundException, QuestionNotFoundException, NoQuestionSelectedException, PlayerNotFoundException {
+        if (!principal.getID().equals(this.game.getMaster())) {
+            throw new NotGameMasterException();
+        }
+
+        AbstractQuestion<?> question = game.getSelectedQuestion();
+        if (question == null) {
+            throw new NoQuestionSelectedException();
+        }
+
+        Player player = game.getPlayerByName(name);
+        if (player == null) {
+            throw new PlayerNotFoundException(name);
+        }
+
+        question.removeAnswer(player);
+
+        this.notifications.sendQuestionUpdate(player.getUuid());
+        this.notifications.sendAnswers();
+    }
+
     @MessageMapping("/question")
     @SendToUser("/topic/question")
     public String question(QuestionIdentifier identifier, UserPrincipal principal)
@@ -209,8 +232,43 @@ public class MessageController {
         return true;
     }
 
+    @MessageMapping("/reset-question")
+    public void resetQuestion(UserPrincipal principal)
+            throws NotGameMasterException, NoQuestionSelectedException, CategoryNotFoundException,
+            QuestionNotFoundException, QuestionAlreadyAnsweredException, RevealException {
+        if (!principal.getID().equals(this.game.getMaster())) {
+            throw new NotGameMasterException();
+        }
+
+        game.resetQuestion();
+
+        this.notifications.sendBoardUpdate();
+        this.notifications.sendQuestionUpdate();
+        this.notifications.sendActivePlayerUpdate();
+        this.notifications.sendAnswers();
+
+    }
+
+    @MessageMapping("/lock-question")
+    public void lockQuestion(UserPrincipal principal)
+            throws NotGameMasterException, NoQuestionSelectedException, CategoryNotFoundException,
+            QuestionNotFoundException, QuestionAlreadyAnsweredException, RevealException {
+        if (!principal.getID().equals(this.game.getMaster())) {
+            throw new NotGameMasterException();
+        }
+
+        AbstractQuestion<?> question = this.game.getSelectedQuestion();
+        if (question == null) {
+            throw new NoQuestionSelectedException();
+        }
+
+        question.setLocked(true);
+
+        this.notifications.sendQuestionUpdate();
+    }
+
     @MessageMapping("/reveal-question")
-    public void lockQuestion(boolean more, UserPrincipal principal)
+    public void revealQuestion(boolean more, UserPrincipal principal)
             throws NotGameMasterException, NoQuestionSelectedException, CategoryNotFoundException,
             QuestionNotFoundException, QuestionAlreadyAnsweredException, RevealException {
         if (!principal.getID().equals(this.game.getMaster())) {
@@ -223,28 +281,34 @@ public class MessageController {
         }
 
         boolean worked = more ? question.revealMore() : question.revealLess();
+        if (!worked) {
+            throw new RevealException("Dieser Revealschritt ist nicht möglich!");
+        }
 
-        if (worked) {
-            if (more && question.isAnswered() && question instanceof Evaluatable) {
-                ((Evaluatable<?>) question).evaluateAnswers();
-                this.notifications.sendLobbyUpdate();
-            }
-        } else {
-            if (more) {
-                if (question.getAnswers().stream().anyMatch(a -> a.getCorrect() == null)) {
-                    throw new RevealException("Es wurden noch nicht alle Antworten der Frage bewertet!");
-                }
-                game.closeQuestion();
-            } else {
-                game.resetQuestion();
-            }
+        if (more && question.isAnswered() && question instanceof Evaluatable eval) {
+            eval.evaluateAnswers();
             this.notifications.sendLobbyUpdate();
-            this.notifications.sendBoardUpdate();
         }
 
         this.notifications.sendQuestionUpdate();
         this.notifications.sendActivePlayerUpdate();
         this.notifications.sendAnswers();
+    }
+
+    @MessageMapping("/close-question")
+    public void closeQuestion(boolean more, UserPrincipal principal)
+            throws NotGameMasterException, NoQuestionSelectedException, CategoryNotFoundException,
+            QuestionNotFoundException, QuestionAlreadyAnsweredException, RevealException {
+        if (!principal.getID().equals(this.game.getMaster())) {
+            throw new NotGameMasterException();
+        }
+
+        AbstractQuestion<?> question = this.game.getSelectedQuestion();
+        if (question == null) {
+            throw new NoQuestionSelectedException();
+        }
+
+        game.closeQuestion();
     }
 
 }

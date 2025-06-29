@@ -2,12 +2,13 @@ import { gamemasterAnswers, isGameMaster, reveal } from "./gamemaster.js";
 import { playerAnswers } from "./player.js";
 import { registerSubscription, stompClient } from "./websocket.js";
 
-var states = ['HIDDEN', 'SHOW_CATEGORY', 'SHOW_QUESTION', 'SHOW_QUESTION_DATA', 'LOCK_QUESTION', 'REVEAL_ANSWERS', 'SHOW_ANSWER']
-
 const metadataDiv = document.getElementById("question-metadata");
 const questionDiv = document.getElementById("question-question");
 const hintDiv = document.getElementById("question-hint");
 const answerDiv = document.getElementById("question-answer");
+
+const resetDiv = document.getElementById("question-reset");
+const lockDiv = document.getElementById("question-lock");
 const closeDiv = document.getElementById("question-close");
 
 var buzzer = document.getElementById("buzzer");
@@ -74,7 +75,16 @@ export function registerQuestion() {
 
             metadataDiv.style.setProperty("--color", update.color);
 
-            const addRevealButton = (more, child) => {
+            const makeQuestionManageButton = (text, cb) => {
+                var button = document.createElement("button");
+                button.classList.add("manage-question-btn", "btn", "btn-warning", "d-flex", "align-items-center", "gap-2", "w-100");
+                button.innerText = text;
+                button.addEventListener('click', cb);
+
+                return button;
+            }
+
+            const makeRevealButton = (more, child) => {
 
                 var typ = more ? 'reveal' : 'hide';
 
@@ -99,14 +109,14 @@ export function registerQuestion() {
                     if (step.revealed || isGameMaster) {
                         var child = makeStep(step);
                         if (!step.revealed && lastRevealed) {
-                            child = addRevealButton(true, child);
+                            child = makeRevealButton(true, child);
 
                             if (lastElement) {
                                 var parent = lastElement.parentNode;
 
                                 lastElement.remove();
 
-                                parent.appendChild(addRevealButton(false, lastElement));
+                                parent.appendChild(makeRevealButton(false, lastElement));
                             }
                         }
                         lastElement = child;
@@ -116,25 +126,30 @@ export function registerQuestion() {
                 }
             }
 
-            if (lastRevealed && isGameMaster) {
-                var closeQuestionButton = document.createElement("button");
-                closeQuestionButton.classList.add("btn-end-question", "btn", "btn-outline-warning", "d-flex", "align-items-center", "gap-2");
-                closeQuestionButton.innerHTML = makeIcon("check-circle-fill");
-                closeQuestionButton.innerText = "Frage abschließen";
-                closeQuestionButton.addEventListener('click', () => reveal(true));
-                closeDiv.replaceChildren(closeQuestionButton);
+            if (isGameMaster) {
+                resetDiv.replaceChildren();
+                lockDiv.replaceChildren();
+                closeDiv.replaceChildren();
+                if (!metadataGrp.steps[0].revealed) {
+                    resetDiv.replaceChildren(makeQuestionManageButton("Frage deselektieren", () => client.send("/app/reset-question", {})));
+                } else if (questionGrp.complete && hintGrp.complete && !answerGrp.started && !update.question.locked) {
+                    lockDiv.replaceChildren(makeQuestionManageButton("Frage locken", () => client.send("/app/lock-question", {})));
+                } else if (answerGrp.complete) {
+                    closeDiv.replaceChildren(makeQuestionManageButton("Frage abschließen", () => client.send("/app/close-question", {})));
+                }
 
-                if (lastElement) {
+                if (lastRevealed && lastElement) {
                     var parent = lastElement.parentNode;
 
                     lastElement.remove();
 
-                    parent.appendChild(addRevealButton(false, lastElement));
+                    parent.appendChild(makeRevealButton(false, lastElement));
                 }
             }
 
 
-            if (metadataGrp.started) {
+
+            if (metadataGrp.started || isGameMaster) {
                 board.style.display = 'none';
             }
             if (metadataGrp.complete) {
@@ -484,7 +499,3 @@ function makeVideoHTML(src) {
 function makeIcon(name) {
     return `<i class="bi bi-${name}"></i>`
 }
-
-
-
-

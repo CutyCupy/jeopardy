@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import de.ciupka.jeopardy.exception.AnswerNotFoundException;
+import de.ciupka.jeopardy.exception.RevealException;
 import de.ciupka.jeopardy.game.Category;
 import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.answer.Answer;
@@ -22,6 +23,8 @@ public abstract class AbstractQuestion<T> {
     private final Type type;
     private final int points;
     private final T answer;
+
+    private boolean locked;
 
     @JsonIgnore
     private final Category category;
@@ -65,6 +68,9 @@ public abstract class AbstractQuestion<T> {
     }
 
     public boolean isAnswered() {
+        if (answers.stream().anyMatch(a -> a.getCorrect() == null || !a.isRevealed())) {
+            return false;
+        }
         return groups.get(GroupType.ANSWER).isComplete();
     }
 
@@ -76,13 +82,21 @@ public abstract class AbstractQuestion<T> {
         return groups;
     }
 
-    public boolean revealMore() {
+    public boolean revealMore() throws RevealException {
         for (GroupType type : GroupType.values()) {
             Group grp = groups.get(type);
             Step step = grp.getNextStep();
             if (step == null) {
                 continue;
             }
+
+            switch (type) {
+                case ANSWER:
+                    if (!grp.isStarted() && !isLocked()) {
+                        throw new RevealException("Die Frage ist noch nicht gelocked!");
+                    }
+            }
+
             step.setRevealed(true);
             return true;
 
@@ -132,11 +146,23 @@ public abstract class AbstractQuestion<T> {
         return answers;
     }
 
+    public void setLocked(boolean locked) throws RevealException {
+        this.locked = locked;
+    }
+
     public boolean isLocked() {
-        return groups.get(GroupType.HINT).isComplete();
+        return locked;
     }
 
     public Category getCategory() {
         return category;
+    }
+
+    public void reset() {
+        this.answers.clear();
+
+        for (Group grp : groups.values()) {
+            grp.reset();
+        }
     }
 }
