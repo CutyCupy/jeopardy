@@ -116,7 +116,6 @@ public class MessageController {
         // TODO: This can be checked better
         if (question.getType().equals(Type.NORMAL)) {
             this.notifications.sendOnBuzzer();
-            this.notifications.setBuzzer(false, principal.getID());
         }
 
         this.notifications.sendAnswers();
@@ -296,7 +295,7 @@ public class MessageController {
     }
 
     @MessageMapping("/close-question")
-    public void closeQuestion(boolean more, UserPrincipal principal)
+    public void closeQuestion(UserPrincipal principal)
             throws NotGameMasterException, NoQuestionSelectedException, CategoryNotFoundException,
             QuestionNotFoundException, QuestionAlreadyAnsweredException, RevealException {
         if (!principal.getID().equals(this.game.getMaster())) {

@@ -13,6 +13,8 @@ const closeDiv = document.getElementById("question-close");
 
 var buzzer = document.getElementById("buzzer");
 
+buzzer.addEventListener('click', () => submitAnswer(""))
+
 const answerText = document.getElementById("answer-textfield");
 const answerNumber = document.getElementById("answer-numberfield");
 const answerSort = document.getElementById("answer-sort");
@@ -280,7 +282,9 @@ export function registerQuestion() {
                 const judgeID = `judge:${answer.player}`;
                 const wrongID = `wrong:${answer.player}`;
                 const correctID = `correct:${answer.player}`;
+                const manageID = `manage:${answer.player}`;
                 const revealID = `reveal:${answer.player}`;
+                const removeID = `remove:${answer.player}`;
 
                 var row = document.getElementById(rowID) || myAnswers.insertRow(-1);
                 row.classList.remove("table-success");
@@ -313,52 +317,56 @@ export function registerQuestion() {
 
                 var correctButton = document.getElementById(correctID) || document.createElement("button");
                 correctButton.id = correctID;
+                correctButton.classList.add("btn", "btn-success", "mx-1");
+                correctButton.innerHTML = makeIcon("check-lg");
+                correctButton.disabled = !answer.revealed || answer.correct != null || answer.evaluatable;
 
                 var wrongButton = document.getElementById(wrongID) || document.createElement("button");
                 wrongButton.id = wrongID;
+                wrongButton.classList.add("btn", "btn-danger", "mx-1");
+                wrongButton.innerHTML = makeIcon("x-lg");
+                wrongButton.disabled = !answer.revealed || answer.correct != null || answer.evaluatable;
 
-                if (answer.evaluatable) {
-                    correctButton.remove();
-                    wrongButton.remove();
-                } else {
-                    var eventListenerFactory = (correct) => function () {
-                        client.send("/app/answer", {}, JSON.stringify({
-                            playerName: answer.player,
-                            isCorrect: correct,
-                        }))
-                    }
-                    correctButton.classList.add("btn", "btn-success", "mx-1");
-                    correctButton.innerHTML = makeIcon("check-lg");
-                    correctButton.disabled = answer.correct != null;
-                    correctButton.addEventListener('click', eventListenerFactory(true))
-
-
-                    wrongButton.classList.add("btn", "btn-danger", "mx-1");
-                    wrongButton.innerHTML = makeIcon("x-lg");
-                    wrongButton.disabled = answer.correct != null;
-                    wrongButton.addEventListener('click', eventListenerFactory(false));
-
-
-                    if (!correctButton.parentNode && !wrongButton.parentNode) {
-                        judgeCell.appendChild(correctButton);
-                        judgeCell.appendChild(wrongButton);
-                    }
+                var eventListenerFactory = (correct) => function () {
+                    client.send("/app/answer", {}, JSON.stringify({
+                        playerName: answer.player,
+                        isCorrect: correct,
+                    }))
                 }
+
+                correctButton.addEventListener('click', eventListenerFactory(true))
+                wrongButton.addEventListener('click', eventListenerFactory(false));
+
+
+                if (!correctButton.parentNode && !wrongButton.parentNode) {
+                    judgeCell.appendChild(correctButton);
+                    judgeCell.appendChild(wrongButton);
+                }
+                var manageCell = document.getElementById(manageID) || row.insertCell(-1);
+                manageCell.id = manageID;
+
 
                 var revealButton = document.getElementById(revealID) || document.createElement("button");
                 revealButton.id = revealID;
+                revealButton.classList.add("btn", "btn-warning", "mx-1");
+                revealButton.innerHTML = makeIcon("search");
+                revealButton.disabled = answer.revealed;
+                revealButton.addEventListener('click', function () {
+                    client.send("/app/reveal-answer", answer.player);
+                })
 
-                if (answer.revealed) {
-                    revealButton.remove();
-                } else {
-                    revealButton.classList.add("btn", "btn-warning", "mx-1");
-                    revealButton.innerHTML = makeIcon("search")
-                    revealButton.addEventListener('click', function () {
-                        client.send("/app/reveal-answer", {}, answer.player);
-                    })
-                    if (!revealButton.parentNode) {
-                        judgeCell.appendChild(revealButton);
-                    }
+                var removeButton = document.getElementById(removeID) || document.createElement("button");
+                removeButton.id = removeID;
+                removeButton.classList.add("btn", "btn-danger", "mx-1");
+                removeButton.innerHTML = makeIcon("trash");
+                removeButton.disabled = answer.revealed;
+                removeButton.addEventListener('click', function () {
+                    client.send("/app/remove-answer", {}, answer.player);
+                })
+
+                if (!revealButton.parentNode && !removeButton.parentNode) {
+                    manageCell.appendChild(revealButton);
+                    manageCell.appendChild(removeButton);
                 }
             }
         }
@@ -372,16 +380,10 @@ export function registerQuestion() {
         client.subscribe("/topic/answer", onAnswerUpdate)
         client.subscribe("/user/topic/answer", onAnswerUpdate)
 
-        client.subscribe("/topic/buzzer-update", (msg) => {
-            var state = JSON.parse(msg.body);
+        client.subscribe("/user/topic/answered", (msg) => {
+            var answered = JSON.parse(msg.body);
 
-            updateBuzzerState(state);
-        });
-
-        client.subscribe("/user/topic/buzzer-update", (msg) => {
-            var state = JSON.parse(msg.body);
-
-            updateBuzzerState(state);
+            setAnswerControlsEnabled(!answered);
         });
 
 
@@ -391,8 +393,6 @@ export function registerQuestion() {
         })
 
         resetQuestion();
-
-
     });
 
 }
@@ -401,7 +401,6 @@ function hideAnswer() {
     Array.from(questionAnswerToolWrapper.children).forEach((v) => {
         v.style.display = 'none';
     });
-
 }
 
 function resetQuestion() {
@@ -410,14 +409,14 @@ function resetQuestion() {
         v.innerText = '';
     });
     Array.from(questionAnswerToolWrapper.children).forEach((v) => {
-        if (v.id == submitButton.id) {
+        if (v.id == submitButton.id || v.id == buzzer.id) {
             return;
         }
         v.value = '';
         v.replaceChildren();
     });
 
-    updateBuzzerState(true);
+    setAnswerControlsEnabled(true);
     answerText.value = '';
     answerNumber.value = '';
     answerSort.replaceChildren();
@@ -433,20 +432,17 @@ function resetQuestion() {
     hideAnswer();
 }
 
-
-function updateBuzzerState(state) {
-    const newBuzzer = buzzer.cloneNode(true);
-    if (state) {
-        newBuzzer.addEventListener('click', () => {
-            submitAnswer("");
-        });
-        newBuzzer.src = "./img/enabutton.png"
-    } else {
-        newBuzzer.src = "./img/disbutton.png"
-    }
-
-    buzzer.parentNode.replaceChild(newBuzzer, buzzer);
-    buzzer = newBuzzer;
+function setAnswerControlsEnabled(enabled) {
+    Array.from(questionAnswerToolWrapper.children).forEach((v) => {
+        switch (v.id) {
+            case submitButton.id, buzzer.id:
+                v.disabled = !enabled;
+                break;
+            default:
+                v.disabled = !enabled;
+                break;
+        }
+    });
 }
 
 function updateSubmitButton(listener) {
@@ -460,7 +456,6 @@ function updateSubmitButton(listener) {
 function submitAnswer(answer) {
     stompClient.send("/app/submit-answer", {}, JSON.stringify({ answer }));
 }
-
 
 function dragstartHandler(ev) {
     ev.dataTransfer.setData("text", ev.target.id);

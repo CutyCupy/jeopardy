@@ -135,6 +135,10 @@ public abstract class AbstractQuestion<T> {
         answers.removeIf(a -> a.getPlayer().equals(player));
     }
 
+    public boolean hasAnswered(Player p) {
+        return answers.stream().anyMatch(a -> a.getPlayer().equals(p));
+    }
+
     public Answer<T> getAnswerByPlayer(Player p) throws AnswerNotFoundException {
         return answers.stream()
                 .filter(a -> a.getPlayer().equals(p))

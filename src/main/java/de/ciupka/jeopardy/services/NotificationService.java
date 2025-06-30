@@ -33,9 +33,9 @@ public class NotificationService {
     private static final String ACTIVE_PLAYER_UPDATE = "/topic/active-player-update";
     private static final String QUESTION_UPDATE = "/topic/question-update";
     private static final String GAMEMASTER_UPDATE = "/topic/gamemaster-update";
-    private static final String BUZZER_UPDATE = "/topic/buzzer-update";
     private static final String ON_BUZZER = "/topic/on-buzzer";
     private static final String ANSWER = "/topic/answer";
+    private static final String ANSWERED = "/topic/answered";
 
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -84,22 +84,19 @@ public class NotificationService {
             return;
         }
         this.message(QUESTION_UPDATE, new QuestionUpdate(game), users);
+
+        this.sendAnswered();
     }
 
     public void sendGameMasterUpdate(final UUID... users) {
         this.message(GAMEMASTER_UPDATE, this.game.getMaster() != null, users);
     }
 
-    // TODO: Change to setAnswerControls oder so ...
-    public void setBuzzer(boolean value, final UUID... users) {
-        this.message(BUZZER_UPDATE, value, users);
-    }
-
     public void sendOnBuzzer() {
         this.message(ON_BUZZER, new HashMap<>());
     }
 
-    public void sendAnswers(final UUID... users) {
+    public void sendAnswers(UUID... users) {
         AbstractQuestion<?> selected = null;
         try {
             selected = game.getSelectedQuestion();
@@ -115,6 +112,8 @@ public class NotificationService {
                 selected.getAnswers().stream().map(a -> new AnswerUpdate(a, false)),
                 users);
 
+        this.sendAnswered();
+
     }
 
     public void sendActivePlayerUpdate(UUID... users) {
@@ -129,5 +128,19 @@ public class NotificationService {
         this.message(ACTIVE_PLAYER_UPDATE, true, p.getUuid());
         this.message(ACTIVE_PLAYER_UPDATE, true,
                 Arrays.stream(users).filter((v) -> !p.getUuid().equals(v)).toArray(UUID[]::new));
+    }
+
+    public void sendAnswered() {
+        for (UUID user : game.getPlayerIDs()) {
+            try {
+                AbstractQuestion<?> question = game.getSelectedQuestion();
+
+                Player player = game.getPlayerByID(user);
+
+                this.message(ANSWERED, question.hasAnswered(player), user);
+            } catch (Exception e) {
+
+            }
+        }
     }
 }
