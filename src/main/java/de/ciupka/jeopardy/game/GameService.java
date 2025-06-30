@@ -24,6 +24,7 @@ import de.ciupka.jeopardy.game.questions.TextQuestion;
 import de.ciupka.jeopardy.game.questions.VideoQuestion;
 import de.ciupka.jeopardy.game.questions.answer.Answer;
 import de.ciupka.jeopardy.game.questions.answer.SortOption;
+import de.ciupka.jeopardy.game.questions.answer.SortOptions;
 
 @Service
 public class GameService {
@@ -49,14 +50,13 @@ public class GameService {
         twitch.addQuestion(new SortQuestion(twitch,
                 "Ordne die folgenden Streamer basierend auf ihren Subs (von den Meisten zu den Wenigsten)",
                 700,
-                new SortOption[] {
+                new SortOptions(
                         new SortOption("Papaplatte", 5000),
                         new SortOption("NoWay4U_Sir", 4000),
                         new SortOption("Gronkh", 3000),
                         new SortOption("Tolkin", 2000),
                         new SortOption("RvNxMango", 1000),
-                        new SortOption("Mahluna", 0000)
-                }));
+                        new SortOption("Mahluna", 0000))));
         twitch.addQuestion(new TextQuestion(
                 twitch,
                 "Welches Emote wurde 2021 aufgrund von kontroversen Tweets des 'Originals' entfernt?",
@@ -65,14 +65,13 @@ public class GameService {
         Category tierwelt = new Category("Tierwelt", "#506837");
         tierwelt.addQuestion(
                 new SortQuestion(tierwelt, "Sortiere diese Tiere nach ihrer Größe (die Größten zuerst)", 100,
-                        new SortOption[] {
+                        new SortOptions(
                                 new SortOption("Elefant", 100),
                                 new SortOption("Pferd", 80),
                                 new SortOption("Schaf", 60),
                                 new SortOption("Katze", 40),
                                 new SortOption("Igel", 20),
-                                new SortOption("Ameise", 10),
-                        }));
+                                new SortOption("Ameise", 10))));
         tierwelt.addQuestion(
                 new EstimateQuestion(tierwelt, "Wieviel Kilogramm Krill ist ein Blauwal pro Tag im Schnitt?", 400,
                         7000));
@@ -96,14 +95,13 @@ public class GameService {
         valo.addQuestion(new SortQuestion(valo,
                 "Ordne die folgenden Waffen basierend auf ihre Magazingröße (von den Meisten zu den Wenigsten)",
                 400,
-                new SortOption[] {
+                new SortOptions(
                         new SortOption("Odin", 100),
                         new SortOption("Phantom", 30),
                         new SortOption("Vandal", 25),
                         new SortOption("Guardian", 12),
                         new SortOption("Sheriff", 6),
-                        new SortOption("Operator", 5)
-                }));
+                        new SortOption("Operator", 5))));
         valo.addQuestion(new Question(valo, "Welcher Agent kommt aus Schweden?", 700, "Breach"));
         valo.addQuestion(new EstimateQuestion(valo,
                 "Wieviel HP hat die Harbor Sphere (oder Smoke - ka wie man das Ding nennen soll)",
@@ -126,7 +124,7 @@ public class GameService {
      *         with {@code name}, it will return false.
      * @throws PlayerAlreadyExistsException
      */
-    public boolean addPlayer(UUID uuid, String name) throws PlayerAlreadyExistsException {
+    public void addPlayer(UUID uuid, String name) throws PlayerAlreadyExistsException {
         Optional<Player> player = this.players.stream().filter((p) -> p.getName().equals(name))
                 .findFirst();
         if (player.isPresent()) {
@@ -134,12 +132,10 @@ public class GameService {
             if (!existing.isDisconnected()) {
                 throw new PlayerAlreadyExistsException(existing);
             }
-            existing.setUuid(uuid);
-            return false;
+            existing.setId(uuid);
+            return;
         }
         this.players.add(new Player(uuid, name));
-
-        return true;
     }
 
     public Player[] getLobby() {
@@ -240,7 +236,7 @@ public class GameService {
     }
 
     public Player getPlayerByID(UUID uid) {
-        Optional<Player> result = this.players.stream().filter((p) -> p.getUuid().equals(uid)).findAny();
+        Optional<Player> result = this.players.stream().filter((p) -> p.getId().equals(uid)).findAny();
         if (result.isPresent()) {
             return result.get();
         }
@@ -276,7 +272,7 @@ public class GameService {
     }
 
     public boolean onDisconnect(UUID id) {
-        Optional<Player> player = players.stream().filter((p) -> p.getUuid().equals(id)).findAny();
+        Optional<Player> player = players.stream().filter((p) -> p.getId().equals(id)).findAny();
         if (player.isPresent()) {
             player.get().disconnect();
             return true;
@@ -291,6 +287,6 @@ public class GameService {
     }
 
     public UUID[] getPlayerIDs() {
-        return players.stream().map((p) -> p.getUuid()).toArray(UUID[]::new);
+        return players.stream().map((p) -> p.getId()).toArray(UUID[]::new);
     }
 }

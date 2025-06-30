@@ -1,20 +1,32 @@
 package de.ciupka.jeopardy.controller.messages;
 
+import de.ciupka.jeopardy.game.Player;
+import de.ciupka.jeopardy.game.questions.AbstractQuestion;
+import de.ciupka.jeopardy.game.questions.Evaluatable;
+import de.ciupka.jeopardy.game.questions.Type;
 import de.ciupka.jeopardy.game.questions.answer.Answer;
 
 public class AnswerUpdate {
 
-    private String player;
+    private Player player;
     private String answer;
+
     private Boolean correct;
 
-    public AnswerUpdate(Answer<?> answer, boolean master) {
-        this.player = answer.getPlayer().getName();
+    private boolean evaluationEnabled;
+    private boolean revealed;
+
+    public AnswerUpdate(AbstractQuestion<?> question, Answer<?> answer, boolean master) {
+        this.player = answer.getPlayer();
         this.correct = answer.getCorrect();
         this.answer = answer.asAnswerText(master);
+
+        this.evaluationEnabled = master && !(question instanceof Evaluatable)
+                && (question.isLocked() || question.getType().equals(Type.NORMAL)) && correct == null;
+        this.revealed = answer.isRevealed();
     }
 
-    public String getPlayer() {
+    public Player getPlayer() {
         return player;
     }
 
@@ -28,6 +40,14 @@ public class AnswerUpdate {
 
     public Boolean getCorrect() {
         return correct;
+    }
+
+    public boolean isEvaluationEnabled() {
+        return evaluationEnabled;
+    }
+
+    public boolean isRevealed() {
+        return revealed;
     }
 
 }

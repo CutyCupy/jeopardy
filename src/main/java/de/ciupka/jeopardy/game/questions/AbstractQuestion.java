@@ -68,7 +68,7 @@ public abstract class AbstractQuestion<T> {
     }
 
     public boolean isAnswered() {
-        if (answers.stream().anyMatch(a -> a.getCorrect() == null || !a.isRevealed())) {
+        if (answers.stream().anyMatch(a -> a.getCorrect() == null)) {
             return false;
         }
         return groups.get(GroupType.ANSWER).isComplete();
@@ -133,6 +133,10 @@ public abstract class AbstractQuestion<T> {
 
     public void removeAnswer(Player player) {
         answers.removeIf(a -> a.getPlayer().equals(player));
+    }
+
+    public boolean hasAnswered(Player p) {
+        return answers.stream().anyMatch(a -> a.getPlayer().equals(p));
     }
 
     public Answer<T> getAnswerByPlayer(Player p) throws AnswerNotFoundException {

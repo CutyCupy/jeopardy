@@ -5,6 +5,8 @@ import { registerSubscription, stompClient } from "./websocket.js";
 const joinButtons = document.getElementById("join");
 export const lobby = document.getElementById("lobby");
 
+export var myID;
+
 
 function onLobbyUpdate(msg) {
     const q = JSON.parse(msg.body);
@@ -50,6 +52,8 @@ export function registerLobby() {
         client.subscribe("/user/topic/lobby-update", onLobbyUpdate);
 
         client.subscribe("/user/topic/join", (msg) => {
+            myID = JSON.parse(msg.body);
+
             hideJoinButtons();
 
             showAlert('success', `${JSON.parse(msg.body) ? 'Herzlich Willkommen' : 'Willkommen zurück'}! Jeden Moment sollte das Spiel starten!`);

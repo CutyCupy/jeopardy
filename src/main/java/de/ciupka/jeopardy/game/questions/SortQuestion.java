@@ -13,18 +13,19 @@ import de.ciupka.jeopardy.game.Category;
 import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.answer.Answer;
 import de.ciupka.jeopardy.game.questions.answer.SortOption;
+import de.ciupka.jeopardy.game.questions.answer.SortOptions;
 import de.ciupka.jeopardy.game.questions.reveal.GroupType;
 import de.ciupka.jeopardy.game.questions.reveal.Step;
 import de.ciupka.jeopardy.game.questions.reveal.StepType;
 
-public class SortQuestion extends AbstractQuestion<SortOption[]> implements Evaluatable<SortOption[]> {
+public class SortQuestion extends AbstractQuestion<SortOptions> implements Evaluatable<SortOption[]> {
 
     private String[] options;
 
-    public SortQuestion(Category category, String question, int points, SortOption[] answer) {
+    public SortQuestion(Category category, String question, int points, SortOptions answer) {
         super(category, question, points, answer, Type.SORT);
 
-        List<String> optionList = Arrays.stream(answer)
+        List<String> optionList = Arrays.stream(answer.getOptions())
                 .map(SortOption::getName)
                 .collect(Collectors.toList());
 
@@ -34,25 +35,23 @@ public class SortQuestion extends AbstractQuestion<SortOption[]> implements Eval
         getGroups().get(GroupType.ANSWER)
                 .addStep(new Step(
                         StepType.TEXT,
-                        Arrays.stream(answer)
-                                .map(SortOption::toString)
-                                .collect(Collectors.joining(", "))));
+                        answer.toString()));
     }
 
     @Override
-    protected Answer<SortOption[]> parseAnswer(JsonNode node, Player player) {
+    protected Answer<SortOptions> parseAnswer(JsonNode node, Player player) {
         ObjectMapper mapper = new ObjectMapper();
-        return new Answer<>(player, mapper.convertValue(node, SortOption[].class));
+        return new Answer<>(player, mapper.convertValue(node, SortOptions.class));
     }
 
     @Override
     public void evaluateAnswers() {
         int maxCorrect = -1;
-        List<Answer<SortOption[]>> best = new ArrayList<>();
-        SortOption[] correctOrder = getAnswer();
+        List<Answer<SortOptions>> best = new ArrayList<>();
+        SortOption[] correctOrder = getAnswer().getOptions();
 
-        for (Answer<SortOption[]> answer : getAnswers()) {
-            SortOption[] playerOrder = answer.getAnswer();
+        for (Answer<SortOptions> answer : getAnswers()) {
+            SortOption[] playerOrder = answer.getAnswer().getOptions();
             int corrects = 0;
 
             for (int i = 0; i < playerOrder.length; i++) {
@@ -68,7 +67,7 @@ public class SortQuestion extends AbstractQuestion<SortOption[]> implements Eval
 
             if (corrects > maxCorrect) {
                 maxCorrect = corrects;
-                for (Answer<SortOption[]> a : best) {
+                for (Answer<SortOptions> a : best) {
                     a.setCorrect(this, false);
                 }
                 best.clear();
@@ -77,7 +76,7 @@ public class SortQuestion extends AbstractQuestion<SortOption[]> implements Eval
             best.add(answer);
         }
 
-        for (Answer<SortOption[]> a : best) {
+        for (Answer<SortOptions> a : best) {
             a.setCorrect(this, true);
         }
     }

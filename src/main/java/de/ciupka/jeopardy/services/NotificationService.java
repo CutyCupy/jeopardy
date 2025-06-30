@@ -33,7 +33,6 @@ public class NotificationService {
     private static final String ACTIVE_PLAYER_UPDATE = "/topic/active-player-update";
     private static final String QUESTION_UPDATE = "/topic/question-update";
     private static final String GAMEMASTER_UPDATE = "/topic/gamemaster-update";
-    private static final String BUZZER_UPDATE = "/topic/buzzer-update";
     private static final String ON_BUZZER = "/topic/on-buzzer";
     private static final String ANSWER = "/topic/answer";
 
@@ -90,30 +89,26 @@ public class NotificationService {
         this.message(GAMEMASTER_UPDATE, this.game.getMaster() != null, users);
     }
 
-    // TODO: Change to setAnswerControls oder so ...
-    public void setBuzzer(boolean value, final UUID... users) {
-        this.message(BUZZER_UPDATE, value, users);
-    }
-
     public void sendOnBuzzer() {
         this.message(ON_BUZZER, new HashMap<>());
     }
 
-    public void sendAnswers(final UUID... users) {
-        AbstractQuestion<?> selected = null;
+    public void sendAnswers() {
         try {
-            selected = game.getSelectedQuestion();
+            AbstractQuestion<?> selected = game.getSelectedQuestion();
+            this.message(ANSWER,
+                    selected.getAnswers().stream().map(a -> new AnswerUpdate(selected, a, false)),
+                    game.getPlayerIDs());
+
+            this.message(ANSWER,
+                    selected.getAnswers().stream().map(a -> new AnswerUpdate(selected, a, true)),
+                    game.getMaster());
+            return;
         } catch (CategoryNotFoundException e) {
         } catch (QuestionNotFoundException e) {
         }
-        if (selected == null) {
-            this.message(ANSWER, new ArrayList<AnswerUpdate>(), users);
-            return;
-        }
-
-        this.message(ANSWER,
-                selected.getAnswers().stream().map(a -> new AnswerUpdate(a, false)),
-                users);
+        this.message(ANSWER, new ArrayList<AnswerUpdate>());
+        return;
 
     }
 
@@ -126,8 +121,8 @@ public class NotificationService {
             this.message(ACTIVE_PLAYER_UPDATE, false, users);
             return;
         }
-        this.message(ACTIVE_PLAYER_UPDATE, true, p.getUuid());
+        this.message(ACTIVE_PLAYER_UPDATE, true, p.getId());
         this.message(ACTIVE_PLAYER_UPDATE, true,
-                Arrays.stream(users).filter((v) -> !p.getUuid().equals(v)).toArray(UUID[]::new));
+                Arrays.stream(users).filter((v) -> !p.getId().equals(v)).toArray(UUID[]::new));
     }
 }
