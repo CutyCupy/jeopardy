@@ -1,5 +1,7 @@
 package de.ciupka.jeopardy.controller;
 
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.annotation.SendToUser;
@@ -67,8 +69,8 @@ public class MessageController {
      */
     @MessageMapping("/join")
     @SendToUser("/topic/join")
-    public boolean join(String name, UserPrincipal principal) throws PlayerAlreadyExistsException {
-        final boolean added = this.game.addPlayer(principal.getID(), name);
+    public UUID join(String name, UserPrincipal principal) throws PlayerAlreadyExistsException {
+        this.game.addPlayer(principal.getID(), name);
 
         /**
          * TODO: Might be necessary to send more data on lobby updates.
@@ -82,7 +84,7 @@ public class MessageController {
             notifications.sendActivePlayerUpdate(principal.getID());
         }
 
-        return added;
+        return principal.getID();
     }
 
     @MessageMapping("/start-game")
@@ -193,7 +195,7 @@ public class MessageController {
 
         question.removeAnswer(player);
 
-        this.notifications.sendQuestionUpdate(player.getUuid());
+        this.notifications.sendQuestionUpdate(player.getId());
         this.notifications.sendAnswers();
     }
 
@@ -204,7 +206,7 @@ public class MessageController {
             CategoryNotFoundException, QuestionNotFoundException {
         Player active = this.game.getCurrentPlayer();
 
-        if (!active.getUuid().equals(principal.getID())) {
+        if (!active.getId().equals(principal.getID())) {
             throw new NotPlayersTurnException();
         }
         this.game.selectQuestion(identifier);

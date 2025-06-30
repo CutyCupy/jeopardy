@@ -68,7 +68,7 @@ public abstract class AbstractQuestion<T> {
     }
 
     public boolean isAnswered() {
-        if (answers.stream().anyMatch(a -> a.getCorrect() == null || !a.isRevealed())) {
+        if (answers.stream().anyMatch(a -> a.getCorrect() == null)) {
             return false;
         }
         return groups.get(GroupType.ANSWER).isComplete();

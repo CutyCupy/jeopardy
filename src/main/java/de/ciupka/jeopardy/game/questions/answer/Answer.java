@@ -46,7 +46,7 @@ public class Answer<T> {
     }
 
     public String asAnswerText(boolean master) {
-        String value = answer instanceof Stringable sAns && !master ? sAns.asShortString() : answer.toString();
+        String value = answer instanceof Stringable sAns ? sAns.asShortString() : answer.toString();
         return master || revealed ? value : null;
     }
 

@@ -13,25 +13,25 @@ import java.util.UUID;
 public class Player {
 
     private String name;
-    private UUID uuid;
+    private UUID id;
     private boolean disconnected;
     private int score;
 
     public Player(UUID uuid, String name) {
         this.name = name;
-        this.uuid = uuid;
+        this.id = uuid;
     }
 
     public String getName() {
         return name;
     }
 
-    public UUID getUuid() {
-        return uuid;
+    public UUID getId() {
+        return id;
     }
 
-    public void setUuid(UUID uuid) {
-        this.uuid = uuid;
+    public void setId(UUID uuid) {
+        this.id = uuid;
         disconnected = false;
     }
 
@@ -60,6 +60,6 @@ public class Player {
 
         Player other = (Player) obj;
         return Objects.equals(name, other.name) &&
-                Objects.equals(uuid, other.uuid);
+                Objects.equals(id, other.id);
     }
 }

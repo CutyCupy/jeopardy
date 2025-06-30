@@ -1,4 +1,5 @@
 import { gamemasterAnswers, isGameMaster, reveal } from "./gamemaster.js";
+import { myID } from "./lobby.js";
 import { playerAnswers } from "./player.js";
 import { registerSubscription, stompClient } from "./websocket.js";
 
@@ -275,16 +276,18 @@ export function registerQuestion() {
                 return;
             }
 
+            setAnswerControlsEnabled(!answers.find((a) => a.player.id == myID))
+
             for (var answer of answers) {
-                const rowID = `row:${answer.player}`;
-                const nameID = `name:${answer.player}`;
-                const answerID = `answer:${answer.player}`;
-                const judgeID = `judge:${answer.player}`;
-                const wrongID = `wrong:${answer.player}`;
-                const correctID = `correct:${answer.player}`;
-                const manageID = `manage:${answer.player}`;
-                const revealID = `reveal:${answer.player}`;
-                const removeID = `remove:${answer.player}`;
+                const rowID = `row:${answer.player.name}`;
+                const nameID = `name:${answer.player.name}`;
+                const answerID = `answer:${answer.player.name}`;
+                const judgeID = `judge:${answer.player.name}`;
+                const wrongID = `wrong:${answer.player.name}`;
+                const correctID = `correct:${answer.player.name}`;
+                const manageID = `manage:${answer.player.name}`;
+                const revealID = `reveal:${answer.player.name}`;
+                const removeID = `remove:${answer.player.name}`;
 
                 var row = document.getElementById(rowID) || myAnswers.insertRow(-1);
                 row.classList.remove("table-success");
@@ -300,7 +303,7 @@ export function registerQuestion() {
 
                 var nameCell = document.getElementById(nameID) || row.insertCell(-1);
                 nameCell.id = nameID
-                nameCell.innerText = answer.player;
+                nameCell.innerText = answer.player.name;
 
                 if (answers.find((v) => !!v.answer)) {
                     var answerCell = document.getElementById(answerID) || row.insertCell(1);
@@ -319,17 +322,17 @@ export function registerQuestion() {
                 correctButton.id = correctID;
                 correctButton.classList.add("btn", "btn-success", "mx-1");
                 correctButton.innerHTML = makeIcon("check-lg");
-                correctButton.disabled = !answer.revealed || answer.correct != null || answer.evaluatable;
+                correctButton.disabled = !answer.evaluationEnabled;
 
                 var wrongButton = document.getElementById(wrongID) || document.createElement("button");
                 wrongButton.id = wrongID;
                 wrongButton.classList.add("btn", "btn-danger", "mx-1");
                 wrongButton.innerHTML = makeIcon("x-lg");
-                wrongButton.disabled = !answer.revealed || answer.correct != null || answer.evaluatable;
+                wrongButton.disabled = !answer.evaluationEnabled;
 
                 var eventListenerFactory = (correct) => function () {
                     client.send("/app/answer", {}, JSON.stringify({
-                        playerName: answer.player,
+                        playerName: answer.player.name,
                         isCorrect: correct,
                     }))
                 }
@@ -350,9 +353,9 @@ export function registerQuestion() {
                 revealButton.id = revealID;
                 revealButton.classList.add("btn", "btn-warning", "mx-1");
                 revealButton.innerHTML = makeIcon("search");
-                revealButton.disabled = answer.revealed;
+                revealButton.disabled = answer.revealed || !answer.answer;
                 revealButton.addEventListener('click', function () {
-                    client.send("/app/reveal-answer", answer.player);
+                    client.send("/app/reveal-answer", answer.player.name);
                 })
 
                 var removeButton = document.getElementById(removeID) || document.createElement("button");
@@ -361,7 +364,7 @@ export function registerQuestion() {
                 removeButton.innerHTML = makeIcon("trash");
                 removeButton.disabled = answer.revealed;
                 removeButton.addEventListener('click', function () {
-                    client.send("/app/remove-answer", {}, answer.player);
+                    client.send("/app/remove-answer", {}, answer.player.name);
                 })
 
                 if (!revealButton.parentNode && !removeButton.parentNode) {
@@ -379,12 +382,6 @@ export function registerQuestion() {
 
         client.subscribe("/topic/answer", onAnswerUpdate)
         client.subscribe("/user/topic/answer", onAnswerUpdate)
-
-        client.subscribe("/user/topic/answered", (msg) => {
-            var answered = JSON.parse(msg.body);
-
-            setAnswerControlsEnabled(!answered);
-        });
 
 
 
