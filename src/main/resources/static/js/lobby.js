@@ -12,7 +12,7 @@ export var myID;
 function onLobbyUpdate(msg) {
     const update = JSON.parse(msg.body);
 
-    const statusClasses = ['connected', 'disconnected', 'waiting'];
+    const statusClasses = ['connected', 'disconnected', 'active'];
 
     for (var i = 0; i < update.players.length; i++) {
         const player = update.players[i];
@@ -26,11 +26,12 @@ function onLobbyUpdate(msg) {
         var status = document.getElementById(statusID);
         if (!row) {
             row = lobby.insertRow(-1);
-            row.classList.add("player-row");
             row.id = rowID;
+            row.classList.add("player-row");
 
             status = row.insertCell(-1);
             status.id = statusID;
+            status.classList.add("player-status");
 
             var name = row.insertCell(-1);
             name.innerText = player.name;
@@ -47,24 +48,19 @@ function onLobbyUpdate(msg) {
         }
 
         statusClasses.forEach(cls => status.classList.remove(cls));
+        row.classList.remove("active");
 
-        if (player.connected) {
-            status.classList.add("connected");
-            var icon = makeIcon("check-circle-fill");
-            icon.classList.add("text-success");
-
-            row.classList.remove("active");
-            if (player.active) {
-                row.classList.add("active");
-                icon = makeIcon("lightning-fill")
-                icon.classList.add("text-primary");
-            }
-            status.replaceChildren(icon);
-        } else {
+        if (!player.connected) {
             status.classList.add("disconnected");
             var icon = makeIcon("x-circle-fill");
-            icon.classList.add("text-danger");
             status.replaceChildren(icon);
+        } else if (player.active) {
+            row.classList.add("active");
+            status.classList.add("active");
+            icon = makeIcon("lightning-fill")
+            status.replaceChildren(icon);
+        } else {
+            status.replaceChildren();
         }
     }
 

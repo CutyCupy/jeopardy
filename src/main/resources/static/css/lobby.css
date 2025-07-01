@@ -14,12 +14,11 @@
     --hover-background: #f0f4ff;
     --hover-color: #1a1a1a;
 
-    --status-active: #28a745;
+    --status-connected: #28a745;
     --status-disconnected: #dc3545;
-    --status-waiting: #ffc107;
+    --status-active: #0d6efd;
 
     --transition-speed: 0.3s;
-
 }
 
 .lobby-table thead {
@@ -28,7 +27,6 @@
     font-weight: 700;
     text-transform: uppercase;
 }
-
 
 .lobby-table th,
 .lobby-table td {
@@ -39,31 +37,28 @@
     font-size: 1rem;
 }
 
-
-
 .player-row {
     background-color: #e9ecef;
     color: #212529;
 
-    outline: #1e1f22;
-
-    transition: background-color 0.3s ease,
+    transition:
+        background-color 0.3s ease,
         color 0.3s ease;
 }
-
 
 .player-row.active {
     background-color: #ced4da;
     color: #000;
     font-weight: 600;
     box-shadow: inset 4px 0 0 #0d6efd;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition:
+        background-color 0.3s ease,
+        color 0.3s ease;
 }
 
 .player-status {
     display: inline-block;
     vertical-align: middle;
-    box-shadow: 0 0 3px rgba(0, 0, 0, 0.15);
 
     i {
         font-size: 1.2rem;
@@ -71,16 +66,12 @@
     }
 }
 
-.player-status.connected {
-    background-color: var(--status-active);
-}
-
 .player-status.disconnected {
-    background-color: var(--status-disconnected);
+    color: var(--status-disconnected);
 }
 
-.player-status.waiting {
-    background-color: var(--status-waiting);
+.player-status.active {
+    color: var(--status-active);
 }
 
 th.name,
@@ -88,7 +79,6 @@ td.name {
     width: 100%;
     white-space: normal;
 }
-
 
 .score {
     text-align: right;
