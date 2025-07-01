@@ -1,4 +1,5 @@
 import { callbackClosure, showAlert } from "./main.js";
+import { playerArea } from "./player.js";
 import { makeIcon } from "./question.js";
 import { registerSubscription, stompClient } from "./websocket.js";
 
@@ -79,7 +80,7 @@ function animateCount(element, start, end, callback) {
 
         // Check vorheriges <tr>
         if (prev) {
-            const prevScore = parseInt(prev.querySelector('td.score-cell').innerText);
+            const prevScore = parseInt(prev.querySelector('td.score').innerText);
             if (currentScore > prevScore) {
                 tbody.insertBefore(tr, prev);
                 swapRowsIfNeeded();
@@ -87,7 +88,7 @@ function animateCount(element, start, end, callback) {
         }
         // Check nächstes <tr>
         if (next) {
-            const nextScore = parseInt(next.querySelector('td.score-cell').innerText);
+            const nextScore = parseInt(next.querySelector('td.score').innerText);
             if (currentScore < nextScore) {
                 tbody.insertBefore(next, tr);
                 swapRowsIfNeeded();
@@ -144,6 +145,7 @@ export function registerLobby() {
             myID = JSON.parse(msg.body);
 
             hideJoinButtons();
+            playerArea.style.display = null;
 
             showAlert('success', `${JSON.parse(msg.body) ? 'Herzlich Willkommen' : 'Willkommen zurück'}! Jeden Moment sollte das Spiel starten!`);
         });

@@ -14,7 +14,6 @@ const gamemasterButton = document.getElementById("gamemaster");
 gamemasterButton.addEventListener('click', becomeGameMaster);
 
 export const gamemasterAnswers = document.getElementById("gamemaster-answers");
-export const gamemasterArea = document.getElementById("gamemaster-area");
 
 
 export function registerGamemaster() {
@@ -26,8 +25,8 @@ export function registerGamemaster() {
             isGameMaster = true;
 
             hideJoinButtons();
+            startGameButton.style.display = null;
             playerArea.style.display = 'none';
-            gamemasterArea.style.display = null;
         });
     })
 }
