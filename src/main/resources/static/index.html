@@ -12,6 +12,7 @@
     <link href="./css/title.css" rel="stylesheet">
     <link href="./css/board.css" rel="stylesheet">
     <link href="./css/question.css" rel="stylesheet">
+    <link href="./css/lobby.css" rel="stylesheet">
 
     <link rel="stylesheet" href="node_modules/primer-css/build/build.css">
     <link rel="stylesheet" href="node_modules/octicons/build/font/octicons.css">
@@ -29,18 +30,20 @@
 <body>
     <div class="container-fluid">
         <div class="row">
+            <div class="title col-10">
+                <span style="--hop-delay: 0.0s; --color-delay: 0.0s">J</span>
+                <span style="--hop-delay: 0.1s; --color-delay: 0.1s">E</span>
+                <span style="--hop-delay: 0.2s; --color-delay: 0.2s">O</span>
+                <span style="--hop-delay: 0.3s; --color-delay: 0.3s">P</span>
+                <span style="--hop-delay: 0.4s; --color-delay: 0.4s">A</span>
+                <span style="--hop-delay: 0.5s; --color-delay: 0.5s">R</span>
+                <span style="--hop-delay: 0.6s; --color-delay: 0.6s">D</span>
+                <span style="--hop-delay: 0.7s; --color-delay: 0.7s">Y</span>
+                <span style="--hop-delay: 0.8s; --color-delay: 0.8s">!</span>
+            </div>
+        </div>
+        <div class="row">
             <div class="col col-10">
-                <div class="title">
-                    <span style="--hop-delay: 0.0s; --color-delay: 0.0s">J</span>
-                    <span style="--hop-delay: 0.1s; --color-delay: 0.1s">E</span>
-                    <span style="--hop-delay: 0.2s; --color-delay: 0.2s">O</span>
-                    <span style="--hop-delay: 0.3s; --color-delay: 0.3s">P</span>
-                    <span style="--hop-delay: 0.4s; --color-delay: 0.4s">A</span>
-                    <span style="--hop-delay: 0.5s; --color-delay: 0.5s">R</span>
-                    <span style="--hop-delay: 0.6s; --color-delay: 0.6s">D</span>
-                    <span style="--hop-delay: 0.7s; --color-delay: 0.7s">Y</span>
-                    <span style="--hop-delay: 0.8s; --color-delay: 0.8s">!</span>
-                </div>
                 <div class="container board" id="board">
                 </div>
 
@@ -70,7 +73,7 @@
                     </div>
 
                     <div class="col-3">
-                        <div id="player-area">
+                        <div id="player-area" style="display: none">
                             <div id="question-answer-tool-wrapper">
                                 <button class="buzzer-btn" id="buzzer"></button>
                                 <textarea class="form-control" id="answer-textfield"
@@ -101,12 +104,12 @@
                 </div>
             </div>
             <div class="col">
-                <table class="table table-bordered table-striped table-light">
-                    <thead class="table-dark">
+                <table class="lobby-table">
+                    <thead>
                         <tr>
-                            <th scope="col" class="text-end col-md-auto">Platz</th>
-                            <th scope="col" style="width: 75%;">Name</th>
-                            <th scope="col" class="text-end">Score</th>
+                            <th></th>
+                            <th>Spieler</th>
+                            <th class="text-end">Punkte</th>
                         </tr>
                     </thead>
                     <tbody id="lobby">

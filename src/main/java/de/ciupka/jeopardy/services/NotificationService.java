@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import de.ciupka.jeopardy.controller.messages.AnswerUpdate;
 import de.ciupka.jeopardy.controller.messages.BoardUpdate;
+import de.ciupka.jeopardy.controller.messages.LobbyUpdate;
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
 import de.ciupka.jeopardy.controller.messages.QuestionUpdate;
 import de.ciupka.jeopardy.exception.CategoryNotFoundException;
@@ -57,7 +58,7 @@ public class NotificationService {
     }
 
     public void sendLobbyUpdate(final UUID... users) {
-        this.message(LOBBY_UPDATE, this.game.getLobby(), users);
+        this.message(LOBBY_UPDATE, new LobbyUpdate(game), users);
     }
 
     public void sendBoardUpdate(UUID... users) {
@@ -97,11 +98,11 @@ public class NotificationService {
         try {
             AbstractQuestion<?> selected = game.getSelectedQuestion();
             this.message(ANSWER,
-                    selected.getAnswers().stream().map(a -> new AnswerUpdate(selected, a, false)),
+                    selected.getAnswers().stream().map(a -> new AnswerUpdate(selected, a, false)).toList(),
                     game.getPlayerIDs());
 
             this.message(ANSWER,
-                    selected.getAnswers().stream().map(a -> new AnswerUpdate(selected, a, true)),
+                    selected.getAnswers().stream().map(a -> new AnswerUpdate(selected, a, true)).toList(),
                     game.getMaster());
             return;
         } catch (CategoryNotFoundException e) {
@@ -122,7 +123,9 @@ public class NotificationService {
             return;
         }
         this.message(ACTIVE_PLAYER_UPDATE, true, p.getId());
-        this.message(ACTIVE_PLAYER_UPDATE, true,
+        this.message(ACTIVE_PLAYER_UPDATE, false,
                 Arrays.stream(users).filter((v) -> !p.getId().equals(v)).toArray(UUID[]::new));
+
+        ;
     }
 }

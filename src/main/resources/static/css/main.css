@@ -1,11 +1,12 @@
 body {
-    background-image: url('../img/background.jpg');
+    background-image: url("../img/background.jpg");
     background-repeat: no-repeat;
     background-size: 100%;
     color: white;
 }
 
-#player-area, #gamemaster-area {
+#player-area,
+#gamemaster-area {
     width: 100%;
 }
 
@@ -16,7 +17,6 @@ body {
 #answer {
     font-size: x-large;
 }
-
 
 svg {
     transform: rotate(-90deg);
@@ -45,12 +45,9 @@ circle {
     position: absolute;
     top: 0;
     left: 0;
-    
     width: 100%;
     height: 100%;
-    
     pointer-events: none;
-    
     display: flex;
     justify-content: center;
     align-items: center;
