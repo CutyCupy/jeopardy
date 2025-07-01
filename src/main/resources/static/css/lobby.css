@@ -1,0 +1,46 @@
+.score-cell {
+    font-weight: 700;
+    position: relative;
+    transition: color 0.5s ease;
+    --animation-duration: 1s;
+}
+
+/* Hochzählen: grüner Text */
+.score-cell.increment {
+    animation: increment-color var(--animation-duration) ease forwards;
+}
+
+/* Runterzählen: roter Text */
+.score-cell.decrement {
+    animation: decrement-color var(--animation-duration) ease forwards;
+}
+
+@keyframes increment-color {
+    0% {
+        background-color: transparent;
+        color: inherit;
+    }
+    50% {
+        background-color: #d4edda; /* Helles Grün */
+        color: #155724; /* Dunkelgrün */
+    }
+    100% {
+        background-color: transparent;
+        color: inherit;
+    }
+}
+
+@keyframes decrement-color {
+    0% {
+        background-color: transparent;
+        color: inherit;
+    }
+    50% {
+        background-color: #f8d7da; /* Helles Rot */
+        color: #721c24; /* Dunkelrot */
+    }
+    100% {
+        background-color: transparent;
+        color: inherit;
+    }
+}

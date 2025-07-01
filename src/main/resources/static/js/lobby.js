@@ -1,4 +1,4 @@
-import { showAlert } from "./main.js";
+import { callbackClosure, showAlert } from "./main.js";
 import { registerSubscription, stompClient } from "./websocket.js";
 
 
@@ -11,39 +11,106 @@ export var myID;
 function onLobbyUpdate(msg) {
     const q = JSON.parse(msg.body);
 
-    const rowCount = lobby.rows.length;
-    for (var i = 0; i < rowCount; i++) {
-        lobby.deleteRow(0);
-    }
-
     for (var i = 0; i < q.length; i++) {
         const player = q[i];
 
-        var row = lobby.insertRow(-1);
+        var rowID = `lobby.row:${player.name}`;
+        var scoreID = `lobby.score:${player.name}`;
 
+        var row = document.getElementById(rowID);
+        var score = document.getElementById(scoreID);
+        if (!row) {
+            row = lobby.insertRow(-1);
+            row.id = rowID;
+
+            var name = row.insertCell(-1);
+            name.innerText = player.name;
+
+            score = row.insertCell(-1);
+            score.id = scoreID;
+            score.innerText = player.score;
+            score.classList.add("text-end", "score-cell");
+        }
+
+        if (parseInt(score.innerText, 10) != player.score) {
+            animateCount(score, parseInt(score.innerText, 10), player.score);
+        }
+
+        // TODO Maybe with a Property?
         if (player.disconnected) {
             row.classList.add("table-danger")
         }
-
-        row.id = `player:${player.name}`
-
-        var place = document.createElement("th");
-        place.scope = "row"
-        place.classList.add("text-end")
-        place.innerText = i + 1;
-
-        row.appendChild(place);
-
-        var name = row.insertCell(1);
-        name.innerText = player.name;
-
-        var score = row.insertCell(2);
-        score.innerText = player.score;
-        score.classList.add("text-end");
     }
 
     // TODO: Send more information for a detailed update analysis and more detailed notification to the players.
     showAlert('info', `Die Lobby wurde geupdated!`);
+}
+
+function animateCount(element, start, end, callback) {
+    const tr = element.parentElement;
+
+    function swapRowsIfNeeded() {
+        const tbody = tr.parentElement;
+        const prev = tr.previousElementSibling;
+        const next = tr.nextElementSibling;
+        const currentScore = parseInt(element.innerText, 10);
+
+        // Check vorheriges <tr>
+        if (prev) {
+            const prevScore = parseInt(prev.querySelector('td.score-cell').innerText);
+            if (currentScore > prevScore) {
+                tbody.insertBefore(tr, prev);
+                swapRowsIfNeeded();
+            }
+        }
+        // Check nächstes <tr>
+        if (next) {
+            const nextScore = parseInt(next.querySelector('td.score-cell').innerText);
+            if (currentScore < nextScore) {
+                tbody.insertBefore(next, tr);
+                swapRowsIfNeeded();
+            }
+        }
+    }
+
+    if (document.visibilityState != 'visible') {
+        element.innerText = end;
+        swapRowsIfNeeded();
+        return;
+    }
+
+    const pointsPerSecond = 333;
+    const diff = Math.abs(end - start);
+    const duration = (diff / pointsPerSecond) * 1000;
+
+    const range = end - start; // Positiv für hochzählen, negativ für runterzählen
+
+    element.classList.add(range < 0 ? "decrement" : "increment");
+
+    element.style.setProperty('--animation-duration', `${duration / 1000}s`);
+
+    const startTime = performance.now();
+
+    function step(currentTime) {
+        const elapsed = currentTime - startTime;
+        swapRowsIfNeeded();
+
+        if (elapsed >= duration) {
+            element.classList.remove(range < 0 ? "decrement" : "increment");
+            element.style.removeProperty('--animation-duration');
+            element.innerText = end;
+            if (callback) callback();
+            return;
+        }
+        const progress = elapsed / duration;
+        // Berechne aktuellen Wert basierend auf Progress und Richtung
+        const value = Math.round(start + range * progress);
+        element.innerText = value;
+
+        requestAnimationFrame(step);
+    }
+
+    requestAnimationFrame(step);
 }
 
 export function registerLobby() {

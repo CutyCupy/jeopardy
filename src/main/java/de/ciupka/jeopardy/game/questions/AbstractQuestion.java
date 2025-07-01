@@ -64,7 +64,7 @@ public abstract class AbstractQuestion<T> {
     }
 
     public int getWrongPoints() {
-        return type.getHasPenalty() ? 0 : -getPoints();
+        return type.getHasPenalty() ? -getPoints() : 0;
     }
 
     public boolean isAnswered() {

@@ -1,5 +1,6 @@
 import { gamemasterAnswers, isGameMaster, reveal } from "./gamemaster.js";
 import { myID } from "./lobby.js";
+import { callbackClosure } from "./main.js";
 import { playerAnswers } from "./player.js";
 import { registerSubscription, stompClient } from "./websocket.js";
 
@@ -330,20 +331,24 @@ export function registerQuestion() {
                 wrongButton.innerHTML = makeIcon("x-lg");
                 wrongButton.disabled = !answer.evaluationEnabled;
 
-                var eventListenerFactory = (correct) => function () {
-                    client.send("/app/answer", {}, JSON.stringify({
-                        playerName: answer.player.name,
-                        isCorrect: correct,
-                    }))
-                }
-
-                correctButton.addEventListener('click', eventListenerFactory(true))
-                wrongButton.addEventListener('click', eventListenerFactory(false));
 
 
                 if (!correctButton.parentNode && !wrongButton.parentNode) {
                     judgeCell.appendChild(correctButton);
                     judgeCell.appendChild(wrongButton);
+
+                    correctButton.addEventListener('click', callbackClosure(answer.player.name, (name) => {
+                        client.send("/app/answer", {}, JSON.stringify({
+                            playerName: name,
+                            isCorrect: true,
+                        }))
+                    }))
+                    wrongButton.addEventListener('click', callbackClosure(answer.player.name, (name) => {
+                        client.send("/app/answer", {}, JSON.stringify({
+                            playerName: name,
+                            isCorrect: false,
+                        }))
+                    }))
                 }
                 var manageCell = document.getElementById(manageID) || row.insertCell(-1);
                 manageCell.id = manageID;
@@ -354,22 +359,22 @@ export function registerQuestion() {
                 revealButton.classList.add("btn", "btn-warning", "mx-1");
                 revealButton.innerHTML = makeIcon("search");
                 revealButton.disabled = answer.revealed || !answer.answer;
-                revealButton.addEventListener('click', function () {
-                    client.send("/app/reveal-answer", answer.player.name);
-                })
 
                 var removeButton = document.getElementById(removeID) || document.createElement("button");
                 removeButton.id = removeID;
                 removeButton.classList.add("btn", "btn-danger", "mx-1");
                 removeButton.innerHTML = makeIcon("trash");
                 removeButton.disabled = answer.revealed;
-                removeButton.addEventListener('click', function () {
-                    client.send("/app/remove-answer", {}, answer.player.name);
-                })
 
                 if (!revealButton.parentNode && !removeButton.parentNode) {
                     manageCell.appendChild(revealButton);
                     manageCell.appendChild(removeButton);
+                    revealButton.addEventListener('click', function () {
+                        client.send("/app/reveal-answer", answer.player.name);
+                    })
+                    removeButton.addEventListener('click', function () {
+                        client.send("/app/remove-answer", {}, answer.player.name);
+                    })
                 }
             }
         }

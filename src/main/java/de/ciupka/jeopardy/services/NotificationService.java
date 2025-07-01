@@ -97,11 +97,11 @@ public class NotificationService {
         try {
             AbstractQuestion<?> selected = game.getSelectedQuestion();
             this.message(ANSWER,
-                    selected.getAnswers().stream().map(a -> new AnswerUpdate(selected, a, false)),
+                    selected.getAnswers().stream().map(a -> new AnswerUpdate(selected, a, false)).toList(),
                     game.getPlayerIDs());
 
             this.message(ANSWER,
-                    selected.getAnswers().stream().map(a -> new AnswerUpdate(selected, a, true)),
+                    selected.getAnswers().stream().map(a -> new AnswerUpdate(selected, a, true)).toList(),
                     game.getMaster());
             return;
         } catch (CategoryNotFoundException e) {
