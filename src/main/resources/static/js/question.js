@@ -94,7 +94,7 @@ export function registerQuestion() {
 
                 var button = document.createElement("button");
                 button.classList.add(`${typ}-btn`, "btn", `btn-outline-${more ? 'warning' : 'danger'}`, "d-flex", "align-items-center", "gap-2");
-                button.innerHTML = makeIcon(`${more ? 'eye' : 'eye-slash'}`);
+                button.replaceChildren(makeIcon(`${more ? 'eye' : 'eye-slash'}`));
                 button.addEventListener('click', () => reveal(more));
 
 
@@ -322,13 +322,13 @@ export function registerQuestion() {
                 var correctButton = document.getElementById(correctID) || document.createElement("button");
                 correctButton.id = correctID;
                 correctButton.classList.add("btn", "btn-success", "mx-1");
-                correctButton.innerHTML = makeIcon("check-lg");
+                correctButton.replaceChildren(makeIcon("check-lg"));
                 correctButton.disabled = !answer.evaluationEnabled;
 
                 var wrongButton = document.getElementById(wrongID) || document.createElement("button");
                 wrongButton.id = wrongID;
                 wrongButton.classList.add("btn", "btn-danger", "mx-1");
-                wrongButton.innerHTML = makeIcon("x-lg");
+                wrongButton.replaceChildren(makeIcon("x-lg"));
                 wrongButton.disabled = !answer.evaluationEnabled;
 
 
@@ -357,13 +357,13 @@ export function registerQuestion() {
                 var revealButton = document.getElementById(revealID) || document.createElement("button");
                 revealButton.id = revealID;
                 revealButton.classList.add("btn", "btn-warning", "mx-1");
-                revealButton.innerHTML = makeIcon("search");
+                revealButton.replaceChildren(makeIcon("search"));
                 revealButton.disabled = answer.revealed || !answer.answer;
 
                 var removeButton = document.getElementById(removeID) || document.createElement("button");
                 removeButton.id = removeID;
                 removeButton.classList.add("btn", "btn-danger", "mx-1");
-                removeButton.innerHTML = makeIcon("trash");
+                removeButton.replaceChildren(makeIcon("trash"));
                 removeButton.disabled = answer.revealed;
 
                 if (!revealButton.parentNode && !removeButton.parentNode) {
@@ -493,6 +493,8 @@ function makeVideoHTML(src) {
             </div>` : null;
 }
 
-function makeIcon(name) {
-    return `<i class="bi bi-${name}"></i>`
+export function makeIcon(name) {
+    var icon = document.createElement("i");
+    icon.classList.add("bi", `bi-${name}`);
+    return icon;
 }

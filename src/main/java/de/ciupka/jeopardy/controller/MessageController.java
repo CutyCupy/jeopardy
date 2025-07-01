@@ -96,6 +96,7 @@ public class MessageController {
         this.game.start();
 
         this.notifications.sendBoardUpdate();
+        this.notifications.sendLobbyUpdate();
         this.notifications.sendActivePlayerUpdate();
     }
 

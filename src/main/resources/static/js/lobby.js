@@ -1,4 +1,5 @@
 import { callbackClosure, showAlert } from "./main.js";
+import { makeIcon } from "./question.js";
 import { registerSubscription, stompClient } from "./websocket.js";
 
 
@@ -9,36 +10,61 @@ export var myID;
 
 
 function onLobbyUpdate(msg) {
-    const q = JSON.parse(msg.body);
+    const update = JSON.parse(msg.body);
 
-    for (var i = 0; i < q.length; i++) {
-        const player = q[i];
+    const statusClasses = ['connected', 'disconnected', 'waiting'];
+
+    for (var i = 0; i < update.players.length; i++) {
+        const player = update.players[i];
 
         var rowID = `lobby.row:${player.name}`;
+        var statusID = `lobby.status:${player.name}`;
         var scoreID = `lobby.score:${player.name}`;
 
         var row = document.getElementById(rowID);
         var score = document.getElementById(scoreID);
+        var status = document.getElementById(statusID);
         if (!row) {
             row = lobby.insertRow(-1);
+            row.classList.add("player-row");
             row.id = rowID;
+
+            status = row.insertCell(-1);
+            status.id = statusID;
 
             var name = row.insertCell(-1);
             name.innerText = player.name;
+            name.classList.add("name");
 
             score = row.insertCell(-1);
             score.id = scoreID;
             score.innerText = player.score;
-            score.classList.add("text-end", "score-cell");
+            score.classList.add("text-end", "score");
         }
 
         if (parseInt(score.innerText, 10) != player.score) {
             animateCount(score, parseInt(score.innerText, 10), player.score);
         }
 
-        // TODO Maybe with a Property?
-        if (player.disconnected) {
-            row.classList.add("table-danger")
+        statusClasses.forEach(cls => status.classList.remove(cls));
+
+        if (player.connected) {
+            status.classList.add("connected");
+            var icon = makeIcon("check-circle-fill");
+            icon.classList.add("text-success");
+
+            row.classList.remove("active");
+            if (player.active) {
+                row.classList.add("active");
+                icon = makeIcon("lightning-fill")
+                icon.classList.add("text-primary");
+            }
+            status.replaceChildren(icon);
+        } else {
+            status.classList.add("disconnected");
+            var icon = makeIcon("x-circle-fill");
+            icon.classList.add("text-danger");
+            status.replaceChildren(icon);
         }
     }
 
