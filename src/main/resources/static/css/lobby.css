@@ -43,7 +43,7 @@
 }
 
 .player-row {
-    background-color: #d8eee3;
+    background-color: #e9ecef;
     color: #212529;
 
     transition:
@@ -52,7 +52,7 @@
 }
 
 .player-row.active {
-    background-color: #e6f1ec;
+    background-color: #d8eee3;
     color: #000;
     font-weight: 600;
     box-shadow: inset 4px 0 0 #28a745;
