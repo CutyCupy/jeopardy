@@ -48,9 +48,11 @@ public class MessageController {
     private NotificationService notifications;
 
     @MessageMapping("/on-connect")
-    public void onConnect(UserPrincipal principal) {
+    @SendToUser("/topic/on-connect")
+    public String onConnect(UserPrincipal principal) {
         this.notifications.sendGameMasterUpdate(principal.getID());
         this.notifications.sendLobbyUpdate(principal.getID());
+        return this.game.getTitle();
     }
 
     /**
