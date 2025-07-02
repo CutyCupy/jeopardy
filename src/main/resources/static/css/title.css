@@ -23,6 +23,7 @@
         shadowShift 20s ease-in-out infinite var(--color-delay),
         gentleHop 5s ease-in-out infinite var(--hop-delay);
     animation-fill-mode: forwards;
+    white-space: pre;
 }
 
 @keyframes colorShift {

@@ -53,12 +53,12 @@ function onLobbyUpdate(msg) {
 
         if (!player.connected) {
             status.classList.add("disconnected");
-            var icon = makeIcon("x-circle-fill");
+            var icon = makeIcon("x-circle");
             status.replaceChildren(icon);
         } else if (player.active) {
             row.classList.add("active");
             status.classList.add("active");
-            icon = makeIcon("lightning-fill")
+            var icon = makeIcon("lightning-fill")
             status.replaceChildren(icon);
         } else {
             status.replaceChildren();
