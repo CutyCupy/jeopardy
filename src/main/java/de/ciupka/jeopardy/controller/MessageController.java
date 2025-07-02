@@ -153,7 +153,6 @@ public class MessageController {
     }
 
     @MessageMapping("/reveal-answer")
-    @SendToUser("/topic/reveal-answer")
     public void revealAnswer(String player, UserPrincipal principal)
             throws InvalidQuestionStateException, NotGameMasterException, NoQuestionSelectedException,
             CategoryNotFoundException, QuestionNotFoundException, AnswerNotFoundException {
@@ -228,6 +227,7 @@ public class MessageController {
         if (game.isActive()) {
             notifications.sendBoardUpdate(principal.getID());
             notifications.sendQuestionUpdate(principal.getID());
+            notifications.sendLobbyUpdate();
             notifications.sendActivePlayerUpdate(principal.getID());
         }
 
@@ -246,6 +246,7 @@ public class MessageController {
 
         this.notifications.sendBoardUpdate();
         this.notifications.sendQuestionUpdate();
+        this.notifications.sendLobbyUpdate();
         this.notifications.sendActivePlayerUpdate();
         this.notifications.sendAnswers();
 
@@ -287,12 +288,8 @@ public class MessageController {
             throw new RevealException("Dieser Revealschritt ist nicht möglich!");
         }
 
-        if (more && question.isAnswered() && question instanceof Evaluatable eval) {
-            eval.evaluateAnswers();
-            this.notifications.sendLobbyUpdate();
-        }
-
         this.notifications.sendQuestionUpdate();
+        this.notifications.sendLobbyUpdate();
         this.notifications.sendActivePlayerUpdate();
         this.notifications.sendAnswers();
     }
@@ -311,6 +308,12 @@ public class MessageController {
         }
 
         game.closeQuestion();
+
+        this.notifications.sendBoardUpdate();
+        this.notifications.sendQuestionUpdate();
+        this.notifications.sendLobbyUpdate();
+        this.notifications.sendActivePlayerUpdate();
+        this.notifications.sendAnswers();
     }
 
 }
