@@ -356,12 +356,22 @@ export function registerQuestion() {
 
                 var revealButton = document.getElementById(revealID) || document.createElement("button");
                 revealButton.id = revealID;
+
+                revealButton.onclick = function () {
+                    client.send("/app/reveal-answer", {}, answer.player.name);
+                };
+
                 revealButton.classList.add("btn", "btn-warning", "mx-1");
                 revealButton.replaceChildren(makeIcon("search"));
                 revealButton.disabled = answer.revealed || !answer.answer;
 
                 var removeButton = document.getElementById(removeID) || document.createElement("button");
                 removeButton.id = removeID;
+
+                removeButton.onclick = function () {
+                    client.send("/app/remove-answer", {}, answer.player.name);
+                };
+
                 removeButton.classList.add("btn", "btn-danger", "mx-1");
                 removeButton.replaceChildren(makeIcon("trash"));
                 removeButton.disabled = answer.revealed;
@@ -369,12 +379,6 @@ export function registerQuestion() {
                 if (!revealButton.parentNode && !removeButton.parentNode) {
                     manageCell.appendChild(revealButton);
                     manageCell.appendChild(removeButton);
-                    revealButton.addEventListener('click', function () {
-                        client.send("/app/reveal-answer", answer.player.name);
-                    })
-                    removeButton.addEventListener('click', function () {
-                        client.send("/app/remove-answer", {}, answer.player.name);
-                    })
                 }
             }
         }

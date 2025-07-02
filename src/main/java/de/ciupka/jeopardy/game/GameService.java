@@ -18,6 +18,7 @@ import de.ciupka.jeopardy.exception.QuestionAlreadySelectedException;
 import de.ciupka.jeopardy.exception.QuestionNotFoundException;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 import de.ciupka.jeopardy.game.questions.EstimateQuestion;
+import de.ciupka.jeopardy.game.questions.Evaluatable;
 import de.ciupka.jeopardy.game.questions.Question;
 import de.ciupka.jeopardy.game.questions.SortQuestion;
 import de.ciupka.jeopardy.game.questions.TextQuestion;
@@ -221,7 +222,11 @@ public class GameService {
         }
 
         if (!question.isAnswered()) {
-            throw new QuestionAlreadyAnsweredException();
+            if (question instanceof Evaluatable eval) {
+                eval.evaluateAnswers();
+            } else {
+                throw new QuestionAlreadyAnsweredException();
+            }
         }
 
         selectedQuestionIdentifier = null;
