@@ -4,6 +4,8 @@ import { callbackClosure } from "./main.js";
 import { playerAnswers } from "./player.js";
 import { registerSubscription, stompClient } from "./websocket.js";
 
+export const questionWrapper = document.getElementById("question");
+
 const metadataDiv = document.getElementById("question-metadata");
 const questionDiv = document.getElementById("question-question");
 const hintDiv = document.getElementById("question-hint");
@@ -13,6 +15,10 @@ const resetDiv = document.getElementById("question-reset");
 const lockDiv = document.getElementById("question-lock");
 const closeDiv = document.getElementById("question-close");
 
+var questionDivs = [
+    metadataDiv, questionDiv, hintDiv, answerDiv, resetDiv, lockDiv, closeDiv,
+];
+
 var buzzer = document.getElementById("buzzer");
 
 buzzer.addEventListener('click', () => submitAnswer(""))
@@ -21,7 +27,6 @@ const answerText = document.getElementById("answer-textfield");
 const answerNumber = document.getElementById("answer-numberfield");
 const answerSort = document.getElementById("answer-sort");
 
-const questionWrapper = document.getElementById("question-wrapper");
 const questionAnswerToolWrapper = document.getElementById("question-answer-tool-wrapper");
 var submitButton = document.getElementById("submit-button");
 
@@ -154,6 +159,7 @@ export function registerQuestion() {
 
 
             if (metadataGrp.started || isGameMaster) {
+                questionWrapper.style.display = null;
                 board.style.display = 'none';
             }
             if (metadataGrp.complete) {
@@ -277,8 +283,6 @@ export function registerQuestion() {
                 return;
             }
 
-            setAnswerControlsEnabled(!answers.find((a) => a.player.id == myID))
-
             for (var answer of answers) {
                 const rowID = `row:${answer.player.name}`;
                 const nameID = `name:${answer.player.name}`;
@@ -383,14 +387,22 @@ export function registerQuestion() {
             }
         }
 
-
+        function onSetAnswerControls(msg) {
+            var enabled = JSON.parse(msg.body);
+            Array.from(questionAnswerToolWrapper.children).forEach((v) => {
+                v.disabled = !enabled;
+            });
+        }
 
 
         client.subscribe("/topic/question-update", onQuestionUpdate);
         client.subscribe("/user/topic/question-update", onQuestionUpdate);
 
-        client.subscribe("/topic/answer", onAnswerUpdate)
-        client.subscribe("/user/topic/answer", onAnswerUpdate)
+        client.subscribe("/topic/answer", onAnswerUpdate);
+        client.subscribe("/user/topic/answer", onAnswerUpdate);
+
+        client.subscribe("/topic/set-answer-controls", onSetAnswerControls)
+        client.subscribe("/user/topic/set-answer-controls", onSetAnswerControls)
 
 
 
@@ -410,7 +422,7 @@ function hideAnswer() {
 }
 
 function resetQuestion() {
-    Array.from(questionWrapper.children).forEach((v) => {
+    questionDivs.forEach((v) => {
         v.replaceChildren();
         v.innerText = '';
     });
@@ -422,7 +434,6 @@ function resetQuestion() {
         v.replaceChildren();
     });
 
-    setAnswerControlsEnabled(true);
     answerText.value = '';
     answerNumber.value = '';
     answerSort.replaceChildren();
@@ -436,20 +447,11 @@ function resetQuestion() {
     playerAnswers.replaceChildren();
 
     hideAnswer();
+
+    questionWrapper.style.display = 'none';
+    board.style.display = null;
 }
 
-function setAnswerControlsEnabled(enabled) {
-    Array.from(questionAnswerToolWrapper.children).forEach((v) => {
-        switch (v.id) {
-            case submitButton.id, buzzer.id:
-                v.disabled = !enabled;
-                break;
-            default:
-                v.disabled = !enabled;
-                break;
-        }
-    });
-}
 
 function updateSubmitButton(listener) {
     const newSubmit = submitButton.cloneNode(true);
