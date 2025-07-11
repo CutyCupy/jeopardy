@@ -56,23 +56,18 @@
                         </div>
                     </div>
 
-                    <div id="player-area" class="col" style="display: none">
-                        <div id="question-answer-tool-wrapper" class="text-center">
-                            <button class="buzzer-btn" id="buzzer"></button>
-                            <textarea class="form-control" id="answer-textfield" placeholder="Antwort..."></textarea>
-                            <input type="number" class="form-control" id="answer-numberfield" placeholder="Antwort...">
-                            <div id="answer-sort">
-                            </div>
-                            <button class="btn btn-primary w-100" id="submit-button">Bestätigen</button>
+                    <div id="question-answer-tool-wrapper" class="col text-center">
+                        <button class="buzzer-btn" id="buzzer"></button>
+                        <textarea class="form-control" id="answer-textfield" placeholder="Antwort..."></textarea>
+                        <input type="number" class="form-control" id="answer-numberfield" placeholder="Antwort...">
+                        <div id="answer-sort">
                         </div>
+                        <button class="btn btn-primary w-100" id="submit-button">Bestätigen</button>
+                    </div>
 
-
-                        <table class="table table-bordered table-striped table-light" id="player-answer-table">
-                            <tbody id="player-answers">
-                            </tbody>
-                        </table>
-                        <table class="table table-bordered table-striped table-light" id="gamemaster-answer-table">
-                            <tbody id="gamemaster-answers">
+                    <div id="question-answers-wrapper" class="col">
+                        <table class="table table-bordered table-striped table-light">
+                            <tbody id="question-answers">
                             </tbody>
                         </table>
                     </div>
@@ -81,7 +76,6 @@
                     <div id="question-reset" class="mb-3">
 
                     </div>
-
                     <div id="question-lock" class="mb-3">
 
                     </div>

@@ -1,6 +1,5 @@
 import { callbackClosure, showAlert } from "./main.js";
-import { playerArea } from "./player.js";
-import { makeIcon } from "./question.js";
+import { makeIcon, questionAnswersWrapper, questionAnswerToolWrapper } from "./question.js";
 import { registerSubscription, stompClient } from "./websocket.js";
 
 
@@ -145,7 +144,8 @@ export function registerLobby() {
             myID = JSON.parse(msg.body);
 
             hideJoinButtons();
-            playerArea.style.display = null;
+            questionAnswerToolWrapper.style.display = null;
+            questionAnswersWrapper.style.display = null;
 
             showAlert('success', `${JSON.parse(msg.body) ? 'Herzlich Willkommen' : 'Willkommen zurück'}! Jeden Moment sollte das Spiel starten!`);
         });
