@@ -11,9 +11,15 @@ registerLobby();
 registerQuestion();
 
 registerSubscription((client) => {
-    client.subscribe("/user/queue/errors", (msg) => {
-        showAlert('danger', msg.body);
-    })
+    client.subscribe("/user/queue/notification", (msg) => {
+        const data = JSON.parse(msg.body);
+        showAlert(data.type, data.message);
+    });
+
+    client.subscribe("/queue/notification", (msg) => {
+        const data = JSON.parse(msg.body);
+        showAlert(data.type, data.message);
+    });
 })
 
 connect();
@@ -31,7 +37,7 @@ export function callbackClosure(i, callback) {
 export function showAlert(type, message, duration) {
     const wrapper = document.createElement('div')
     wrapper.innerHTML = [
-        `<div class="alert alert-${type} alert-dismissible" role="alert">`,
+        `<div class="alert alert-${type.toLowerCase()} alert-dismissible" role="alert">`,
         `   ${message}`,
         '</div>'
     ].join('')
