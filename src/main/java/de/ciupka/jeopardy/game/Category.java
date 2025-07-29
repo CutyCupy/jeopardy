@@ -1,9 +1,10 @@
 package de.ciupka.jeopardy.game;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import de.ciupka.jeopardy.exception.CategoryNotFoundException;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import de.ciupka.jeopardy.exception.QuestionNotFoundException;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 
@@ -13,18 +14,13 @@ public class Category {
     private String colorCode;
     private List<AbstractQuestion<?>> questions;
 
-    public Category(String name, String colorCode) {
+    @JsonCreator
+    public Category(@JsonProperty("name") String name, 
+        @JsonProperty("colorCode") String colorCode,
+        @JsonProperty("questions") List<AbstractQuestion<?>> questions) {
         this.name = name;
         this.colorCode = colorCode;
-        this.questions = new ArrayList<>();
-    }
-
-    public void addQuestion(AbstractQuestion<?> question) throws CategoryNotFoundException {
-        if (!question.getCategory().equals(this)) {
-            // TODO: Wrong Category
-            throw new CategoryNotFoundException();
-        }
-        questions.add(question);
+        this.questions = questions;
     }
 
     public String getName() {

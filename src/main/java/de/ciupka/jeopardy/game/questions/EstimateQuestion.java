@@ -3,9 +3,10 @@ package de.ciupka.jeopardy.game.questions;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 
-import de.ciupka.jeopardy.game.Category;
 import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.answer.Answer;
 import de.ciupka.jeopardy.game.questions.reveal.GroupType;
@@ -14,8 +15,12 @@ import de.ciupka.jeopardy.game.questions.reveal.StepType;
 
 public class EstimateQuestion extends AbstractQuestion<Integer> implements Evaluatable<Integer> {
 
-    public EstimateQuestion(Category category, String question, int points, Integer answer) {
-        super(category, question, points, answer, Type.ESTIMATE);
+    @JsonCreator
+    public EstimateQuestion(
+        @JsonProperty("question") String question, 
+        @JsonProperty("points") int points, 
+        @JsonProperty("answer") Integer answer) {
+        super(question, points, answer, Type.ESTIMATE);
 
         getGroups().get(GroupType.ANSWER)
                 .addStep(new Step(StepType.TEXT, "Korrekte Schätzung: " + answer));

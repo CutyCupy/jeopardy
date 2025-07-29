@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import de.ciupka.jeopardy.exception.AnswerNotFoundException;
@@ -18,38 +20,57 @@ import de.ciupka.jeopardy.game.questions.reveal.GroupType;
 import de.ciupka.jeopardy.game.questions.reveal.Step;
 import de.ciupka.jeopardy.game.questions.reveal.StepType;
 
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = JsonTypeInfo.As.PROPERTY,
+    property = "type"
+)
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = EstimateQuestion.class, name = "ESTIMATE"),
+    @JsonSubTypes.Type(value = Question.class, name = "NORMAL"),
+    @JsonSubTypes.Type(value = SortQuestion.class, name = "SORT"),
+    @JsonSubTypes.Type(value = TextQuestion.class, name = "TEXT"),
+    @JsonSubTypes.Type(value = VideoQuestion.class, name = "VIDEO")
+})
 public abstract class AbstractQuestion<T> {
 
     private final Type type;
     private final int points;
     private final T answer;
+    private final String question;
 
     private boolean locked;
 
     @JsonIgnore
-    private final Category category;
+    private Category category;
 
     private final Map<GroupType, Group> groups = new EnumMap<>(GroupType.class);
 
     @JsonIgnore
     private final List<Answer<T>> answers = new ArrayList<>();
 
-    public AbstractQuestion(Category category, String questionText, int points, T answer, Type type) {
-        this.category = category;
+    public AbstractQuestion(String question, int points, T answer, Type type) {
         this.points = points;
         this.answer = answer;
         this.type = type;
+        this.question = question;
 
-        initDefaultGroups(questionText);
+        initDefaultGroups();
     }
 
-    private void initDefaultGroups(String questionText) {
+    public void setCategory(Category category) {
+        this.category = category;
+
+        groups.get(GroupType.METADATA).getSteps().get(0).setContent(String.format("%s - %d Punkte", category.getName(), points));
+    }
+
+    private void initDefaultGroups() {
         groups.put(GroupType.METADATA, new Group(GroupType.METADATA)
-                .addStep(new Step(StepType.TEXT, String.format("%s - %d Punkte", category.getName(), points)))
+                .addStep(new Step(StepType.TEXT, String.format("%d Punkte", points)))
                 .addStep(new Step(StepType.TEXT, type.getTitle())));
 
         groups.put(GroupType.QUESTION, new Group(GroupType.QUESTION)
-                .addStep(new Step(StepType.TEXT, questionText)));
+                .addStep(new Step(StepType.TEXT, this.question)));
 
         groups.put(GroupType.HINT, new Group(GroupType.HINT));
         groups.put(GroupType.ANSWER, new Group(GroupType.ANSWER));

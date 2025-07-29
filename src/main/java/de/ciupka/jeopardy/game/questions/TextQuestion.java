@@ -1,8 +1,10 @@
 package de.ciupka.jeopardy.game.questions;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
+
 import de.ciupka.jeopardy.game.Player;
-import de.ciupka.jeopardy.game.Category;
 import de.ciupka.jeopardy.game.questions.answer.Answer;
 import de.ciupka.jeopardy.game.questions.reveal.GroupType;
 import de.ciupka.jeopardy.game.questions.reveal.Step;
@@ -10,8 +12,12 @@ import de.ciupka.jeopardy.game.questions.reveal.StepType;
 
 public class TextQuestion extends AbstractQuestion<String> {
 
-    public TextQuestion(Category category, String question, int points, String answer) {
-        super(category, question, points, answer, Type.TEXT);
+    @JsonCreator
+    public TextQuestion(
+        @JsonProperty("question") String question, 
+        @JsonProperty("points") int points, 
+        @JsonProperty("answer") String answer) {
+        super(question, points, answer, Type.TEXT);
 
         getGroups().get(GroupType.ANSWER)
             .addStep(new Step(StepType.TEXT, answer));

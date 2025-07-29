@@ -1,11 +1,16 @@
 package de.ciupka.jeopardy.game;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
 import de.ciupka.jeopardy.exception.AnswerNotFoundException;
@@ -17,15 +22,8 @@ import de.ciupka.jeopardy.exception.QuestionAlreadyAnsweredException;
 import de.ciupka.jeopardy.exception.QuestionAlreadySelectedException;
 import de.ciupka.jeopardy.exception.QuestionNotFoundException;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
-import de.ciupka.jeopardy.game.questions.EstimateQuestion;
 import de.ciupka.jeopardy.game.questions.Evaluatable;
-import de.ciupka.jeopardy.game.questions.Question;
-import de.ciupka.jeopardy.game.questions.SortQuestion;
-import de.ciupka.jeopardy.game.questions.TextQuestion;
-import de.ciupka.jeopardy.game.questions.VideoQuestion;
 import de.ciupka.jeopardy.game.questions.answer.Answer;
-import de.ciupka.jeopardy.game.questions.answer.SortOption;
-import de.ciupka.jeopardy.game.questions.answer.SortOptions;
 
 @Service
 public class GameService {
@@ -37,80 +35,18 @@ public class GameService {
     private int currentPlayerIdx = -1;
     private UUID master;
 
-    public GameService() throws CategoryNotFoundException {
+    public GameService() throws CategoryNotFoundException, IOException {
         this.players = new ArrayList<>();
+        ObjectMapper mapper = new ObjectMapper();
 
-        Category twitch = new Category("Twitch", "#4D3280");
-        twitch.addQuestion(
-                new EstimateQuestion(
-                        twitch,
-                        "Wieviele Nachrichten habe ich in Chats im Mai 2025 von Streamern aus unserer Freundesgruppe geschrieben? (Sleep, Chris, Lasse, Leonie, Lari, Selina)",
-                        100, 88 + 16 + 613 + 1703 + 14 + 308));
-        twitch.addQuestion(new Question(twitch, "Wie teuer ist ein Tier-3 Sub aktuell?", 400,
-                "19,99€ (zumindest wenn ich bei Attix jetzt Tier-3 subben würde)"));
-        twitch.addQuestion(new SortQuestion(twitch,
-                "Ordne die folgenden Streamer basierend auf ihren Subs (von den Meisten zu den Wenigsten)",
-                700,
-                new SortOptions(
-                        new SortOption("Papaplatte", 5000),
-                        new SortOption("NoWay4U_Sir", 4000),
-                        new SortOption("Gronkh", 3000),
-                        new SortOption("Tolkin", 2000),
-                        new SortOption("RvNxMango", 1000),
-                        new SortOption("Mahluna", 0000))));
-        twitch.addQuestion(new TextQuestion(
-                twitch,
-                "Welches Emote wurde 2021 aufgrund von kontroversen Tweets des 'Originals' entfernt?",
-                1000,
-                "PogChamp"));
-        Category tierwelt = new Category("Tierwelt", "#506837");
-        tierwelt.addQuestion(
-                new SortQuestion(tierwelt, "Sortiere diese Tiere nach ihrer Größe (die Größten zuerst)", 100,
-                        new SortOptions(
-                                new SortOption("Elefant", 100),
-                                new SortOption("Pferd", 80),
-                                new SortOption("Schaf", 60),
-                                new SortOption("Katze", 40),
-                                new SortOption("Igel", 20),
-                                new SortOption("Ameise", 10))));
-        tierwelt.addQuestion(
-                new EstimateQuestion(tierwelt, "Wieviel Kilogramm Krill ist ein Blauwal pro Tag im Schnitt?", 400,
-                        7000));
-        tierwelt.addQuestion(new EstimateQuestion(tierwelt,
-                "Wie schnell war die schnellste aufgezeichnete Hauskatze (in km/h)?", 700,
-                48));
-        tierwelt.addQuestion(new Question(tierwelt, "Wieviele Mägen hat eine Kuh?", 1000, "Vier"));
+        try (InputStream inputStream = GameService.class.getResourceAsStream("/questions.json")) {
+            if (inputStream == null) {
+                throw new IllegalStateException("questions.json not found in resources!");
+            }
 
-        Category lol = new Category("League of Legends",
-                "#9E8C49");
-
-        lol.addQuestion(new Question(lol, "Wieviele Schwänze hat Ahri?", 100, "9"));
-        lol.addQuestion(new EstimateQuestion(lol, "Wieviel Range hat Caitlyn?", 400, 650));
-        lol.addQuestion(new TextQuestion(lol, "Welchen Champion spielte Faker in seinem Pro Debüt?", 700, "Nidalee"));
-        lol.addQuestion(new VideoQuestion(lol, "Was passiert als nächstes?", 1000, "2dz8zb",
-                "Blaber flashed und stirbt für die Krabbe", "ga4ln4"));
-
-        Category valo = new Category("Valorant",
-                "#B93B3B");
-        valo.addQuestion(new Question(valo, "Wieviele Waffen gibt es in VALORANT?", 100, "18"));
-        valo.addQuestion(new SortQuestion(valo,
-                "Ordne die folgenden Waffen basierend auf ihre Magazingröße (von den Meisten zu den Wenigsten)",
-                400,
-                new SortOptions(
-                        new SortOption("Odin", 100),
-                        new SortOption("Phantom", 30),
-                        new SortOption("Vandal", 25),
-                        new SortOption("Guardian", 12),
-                        new SortOption("Sheriff", 6),
-                        new SortOption("Operator", 5))));
-        valo.addQuestion(new Question(valo, "Welcher Agent kommt aus Schweden?", 700, "Breach"));
-        valo.addQuestion(new EstimateQuestion(valo,
-                "Wieviel HP hat die Harbor Sphere (oder Smoke - ka wie man das Ding nennen soll)",
-                1000, 500));
-
-        this.board = new Category[] {
-                twitch, tierwelt, lol, valo
-        };
+            this.board = mapper.readValue(inputStream, new TypeReference<Category[]>() {
+            });
+        }
     }
 
     /**
@@ -296,6 +232,6 @@ public class GameService {
     }
 
     public String getTitle() {
-        return "CutyCupy's Jeopardy!";
+        return "Jeopardy";
     }
 }
