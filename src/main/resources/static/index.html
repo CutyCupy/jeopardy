@@ -30,76 +30,57 @@
 <body>
     <div class="container-fluid">
         <div class="row">
-            <div class="title col-10">
-                <span style="--hop-delay: 0.0s; --color-delay: 0.0s">J</span>
-                <span style="--hop-delay: 0.1s; --color-delay: 0.1s">E</span>
-                <span style="--hop-delay: 0.2s; --color-delay: 0.2s">O</span>
-                <span style="--hop-delay: 0.3s; --color-delay: 0.3s">P</span>
-                <span style="--hop-delay: 0.4s; --color-delay: 0.4s">A</span>
-                <span style="--hop-delay: 0.5s; --color-delay: 0.5s">R</span>
-                <span style="--hop-delay: 0.6s; --color-delay: 0.6s">D</span>
-                <span style="--hop-delay: 0.7s; --color-delay: 0.7s">Y</span>
-                <span style="--hop-delay: 0.8s; --color-delay: 0.8s">!</span>
+            <div class="title col-10" id="title">
             </div>
         </div>
         <div class="row">
-            <div class="col col-10">
-                <div class="container board" id="board">
-                </div>
+            <div class="col-10 board" id="board">
+            </div>
+            <div class="col-10" id="question" style="display: none">
+                <div class="row">
+                    <div id="question-metadata" class="mb-3 text-center">
 
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col" id="question-wrapper">
-                        <div id="question-reset" class="mb-3">
-
-                        </div>
-                        <div id="question-metadata" class="mb-3">
-
-                        </div>
                         <div id="question-question" class="mb-3">
 
                         </div>
-                        <div id="question-hint" class="mb-3">
 
-                        </div>
-                        <div id="question-lock" class="mb-3">
+                        <div id="question-hint" class="mb-3">
 
                         </div>
                         <div id="question-answer" class="mb-3">
 
                         </div>
-                        <div id="question-close" class="mb-3">
-
-                        </div>
                     </div>
 
-                    <div class="col-3">
-                        <div id="player-area" style="display: none">
-                            <div id="question-answer-tool-wrapper">
-                                <button class="buzzer-btn" id="buzzer"></button>
-                                <textarea class="form-control" id="answer-textfield"
-                                    placeholder="Antwort..."></textarea>
-                                <input type="number" class="form-control" id="answer-numberfield"
-                                    placeholder="Antwort...">
-                                <div id="answer-sort">
-                                </div>
-                                <button class="btn btn-primary w-100" id="submit-button">Bestätigen</button>
-                            </div>
+                    <div id="question-answer-tool-wrapper" class="col-3 text-center">
+                        <button class="buzzer-btn" id="buzzer"></button>
+                        <textarea class="form-control" id="answer-textfield" placeholder="Antwort..."></textarea>
+                        <input type="number" class="form-control" id="answer-numberfield" placeholder="Antwort...">
+                        <div id="answer-sort">
                         </div>
+                        <button class="btn btn-primary w-100" id="submit-button">Bestätigen</button>
+                    </div>
 
-
-                        <div id="gamemaster-area" style="display: none">
-                            <button class="btn btn-success" style="width: 100%;" id="start-game">Spiel
-                                starten</button>
-                        </div>
-
-                        <table class="table table-bordered table-striped table-light" id="player-answer-table">
-                            <tbody id="player-answers">
+                    <div id="question-answers-wrapper" class="col">
+                        <table class="table table-bordered table-striped table-light">
+                            <tbody id="question-answers">
                             </tbody>
                         </table>
-                        <table class="table table-bordered table-striped table-light" id="gamemaster-answer-table">
-                            <tbody id="gamemaster-answers">
-                            </tbody>
-                        </table>
+                    </div>
+                </div>
+                <div class="row">
+                    <div id="question-reset" class="mb-3">
+
+                    </div>
+                    <div id="question-lock" class="mb-3">
+
+                    </div>
+                    <div id="question-close" class="mb-3">
+
                     </div>
                 </div>
             </div>
@@ -119,6 +100,9 @@
                     <button class="btn btn-primary btn-lg btn-block" id="join-game">Spiel
                         beitreten</button>
                     <button class="btn btn-danger btn-lg btn-block my-1" id="gamemaster">Gamemaster werden!</button>
+
+                    <button class="btn btn-success btn-lg btn-block my-1" style="display: none;" id="start-game">Spiel
+                        starten</button>
                 </div>
             </div>
         </div>

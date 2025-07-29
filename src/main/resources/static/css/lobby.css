@@ -14,9 +14,9 @@
     --hover-background: #f0f4ff;
     --hover-color: #1a1a1a;
 
-    --status-connected: #28a745;
+    --status-active: #28a745;
+    --status-waiting: #ffc107;
     --status-disconnected: #dc3545;
-    --status-active: #0d6efd;
 
     --transition-speed: 0.3s;
 }
@@ -37,6 +37,11 @@
     font-size: 1rem;
 }
 
+.lobby-table tr>th:first-child,
+.lobby-table tr>td:first-child {
+    padding-right: 0 !important;
+}
+
 .player-row {
     background-color: #e9ecef;
     color: #212529;
@@ -47,23 +52,31 @@
 }
 
 .player-row.active {
-    background-color: #ced4da;
+    background-color: #d8eee3;
     color: #000;
     font-weight: 600;
-    box-shadow: inset 4px 0 0 #0d6efd;
+    box-shadow: inset 4px 0 0 #28a745;
     transition:
         background-color 0.3s ease,
         color 0.3s ease;
 }
 
 .player-status {
-    display: inline-block;
+    min-width: 2.2rem;
+    text-align: center;
     vertical-align: middle;
+    padding-right: 0;
+
 
     i {
         font-size: 1.2rem;
+        opacity: 0.8;
         vertical-align: middle;
     }
+}
+
+.player-status.waiting {
+    color: var(--status-waiting);
 }
 
 .player-status.disconnected {

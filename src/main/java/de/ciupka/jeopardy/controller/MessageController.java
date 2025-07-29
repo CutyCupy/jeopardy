@@ -48,9 +48,11 @@ public class MessageController {
     private NotificationService notifications;
 
     @MessageMapping("/on-connect")
-    public void onConnect(UserPrincipal principal) {
+    @SendToUser("/topic/on-connect")
+    public String onConnect(UserPrincipal principal) {
         this.notifications.sendGameMasterUpdate(principal.getID());
         this.notifications.sendLobbyUpdate(principal.getID());
+        return this.game.getTitle();
     }
 
     /**
@@ -101,9 +103,12 @@ public class MessageController {
     }
 
     @MessageMapping("/submit-answer")
-    public boolean submitAnswer(SubmittedAnswer answer, UserPrincipal principal)
+    public void submitAnswer(SubmittedAnswer answer, UserPrincipal principal)
             throws PlayerNotFoundException, NoQuestionSelectedException, CategoryNotFoundException,
             QuestionNotFoundException {
+        if (principal.getID().equals(this.game.getMaster())) {
+            return;
+        }
         Player answering = this.game.getPlayerByID(principal.getID());
         if (answering == null) {
             throw new PlayerNotFoundException(principal.getID());
@@ -122,8 +127,6 @@ public class MessageController {
         }
 
         this.notifications.sendAnswers();
-
-        return false;
     }
 
     @MessageMapping("/answer")

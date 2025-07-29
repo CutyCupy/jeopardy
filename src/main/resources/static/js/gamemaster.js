@@ -1,5 +1,5 @@
 import { hideJoinButtons } from "./lobby.js";
-import { playerArea } from "./player.js";
+import { questionAnswersWrapper, questionAnswerToolWrapper } from "./question.js";
 import { registerSubscription, stompClient } from "./websocket.js";
 
 export let isGameMaster;
@@ -13,9 +13,6 @@ const gamemasterButton = document.getElementById("gamemaster");
 
 gamemasterButton.addEventListener('click', becomeGameMaster);
 
-export const gamemasterAnswers = document.getElementById("gamemaster-answers");
-export const gamemasterArea = document.getElementById("gamemaster-area");
-
 
 export function registerGamemaster() {
     registerSubscription((client) => {
@@ -26,8 +23,8 @@ export function registerGamemaster() {
             isGameMaster = true;
 
             hideJoinButtons();
-            playerArea.style.display = 'none';
-            gamemasterArea.style.display = null;
+            startGameButton.style.display = null;
+            questionAnswerToolWrapper.style.display = 'none';
         });
     })
 }

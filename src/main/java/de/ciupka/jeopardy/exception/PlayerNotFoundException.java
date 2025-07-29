@@ -17,7 +17,7 @@ public class PlayerNotFoundException extends Exception {
 
     @Override
     public String getMessage() {
-        if (uuid != null) {
+        if (uuid == null) {
             return String.format("Es wurde kein Spieler mit dem Namen '%s' gefunden!", name);
         }
         return String.format("Es wurde kein Spieler mit der ID '%s' gefunden!", uuid.toString());

@@ -294,4 +294,8 @@ public class GameService {
     public UUID[] getPlayerIDs() {
         return players.stream().map((p) -> p.getId()).toArray(UUID[]::new);
     }
+
+    public String getTitle() {
+        return "CutyCupy's Jeopardy!";
+    }
 }

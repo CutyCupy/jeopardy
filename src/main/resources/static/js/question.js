@@ -1,8 +1,11 @@
-import { gamemasterAnswers, isGameMaster, reveal } from "./gamemaster.js";
+import { isGameMaster, reveal } from "./gamemaster.js";
 import { myID } from "./lobby.js";
 import { callbackClosure } from "./main.js";
-import { playerAnswers } from "./player.js";
 import { registerSubscription, stompClient } from "./websocket.js";
+
+export const questionWrapper = document.getElementById("question");
+export const questionAnswersWrapper = document.getElementById("question-answers-wrapper");
+export const questionAnswers = document.getElementById("question-answers");
 
 const metadataDiv = document.getElementById("question-metadata");
 const questionDiv = document.getElementById("question-question");
@@ -13,6 +16,17 @@ const resetDiv = document.getElementById("question-reset");
 const lockDiv = document.getElementById("question-lock");
 const closeDiv = document.getElementById("question-close");
 
+const questionDivs = [
+    metadataDiv,
+    questionDiv,
+    hintDiv,
+    answerDiv,
+
+    resetDiv,
+    lockDiv,
+    closeDiv,
+]
+
 var buzzer = document.getElementById("buzzer");
 
 buzzer.addEventListener('click', () => submitAnswer(""))
@@ -21,8 +35,7 @@ const answerText = document.getElementById("answer-textfield");
 const answerNumber = document.getElementById("answer-numberfield");
 const answerSort = document.getElementById("answer-sort");
 
-const questionWrapper = document.getElementById("question-wrapper");
-const questionAnswerToolWrapper = document.getElementById("question-answer-tool-wrapper");
+export const questionAnswerToolWrapper = document.getElementById("question-answer-tool-wrapper");
 var submitButton = document.getElementById("submit-button");
 
 const buzzerAudio = document.getElementById("buzzer-audio");
@@ -71,6 +84,7 @@ export function registerQuestion() {
                 return;
             }
             hideAnswer();
+
 
             var metadataGrp = update.question.groups['METADATA'];
             var questionGrp = update.question.groups['QUESTION'];
@@ -149,11 +163,14 @@ export function registerQuestion() {
 
                     parent.appendChild(makeRevealButton(false, lastElement));
                 }
+            } else {
+                questionAnswerToolWrapper.style.display = null;
             }
 
 
 
             if (metadataGrp.started || isGameMaster) {
+                questionWrapper.style.display = null;
                 board.style.display = 'none';
             }
             if (metadataGrp.complete) {
@@ -220,6 +237,16 @@ export function registerQuestion() {
             }
 
 
+            if (update.question.locked) {
+                submitButton.click();
+
+                Array.from(questionAnswerToolWrapper.children).forEach((v) => {
+                    v.disabled = true;
+                });
+
+                questionAnswerToolWrapper.style.display = 'none';
+            }
+
             // if (isLocked && !showAnswer) {
             //     countdown = COUNTDOWN_LENGTH;
             //     const diameter = 2 * Math.PI * 90; // TODO: Maybe hardcode the radius?
@@ -271,13 +298,17 @@ export function registerQuestion() {
         function onAnswerUpdate(msg) {
             var answers = JSON.parse(msg.body);
 
-            var myAnswers = isGameMaster ? gamemasterAnswers : playerAnswers;
+
+            const enabled = !answers.find((v) => v.player.id == myID);
+
+            Array.from(questionAnswerToolWrapper.children).forEach((v) => {
+                v.disabled = !enabled;
+            });
+
             if (!answers.length) {
-                myAnswers.replaceChildren();
+                questionAnswers.replaceChildren();
                 return;
             }
-
-            setAnswerControlsEnabled(!answers.find((a) => a.player.id == myID))
 
             for (var answer of answers) {
                 const rowID = `row:${answer.player.name}`;
@@ -290,7 +321,7 @@ export function registerQuestion() {
                 const revealID = `reveal:${answer.player.name}`;
                 const removeID = `remove:${answer.player.name}`;
 
-                var row = document.getElementById(rowID) || myAnswers.insertRow(-1);
+                var row = document.getElementById(rowID) || questionAnswers.insertRow(-1);
                 row.classList.remove("table-success");
                 row.classList.remove("table-danger");
                 row.classList.add("text-center");
@@ -385,14 +416,11 @@ export function registerQuestion() {
 
 
 
-
         client.subscribe("/topic/question-update", onQuestionUpdate);
         client.subscribe("/user/topic/question-update", onQuestionUpdate);
 
-        client.subscribe("/topic/answer", onAnswerUpdate)
-        client.subscribe("/user/topic/answer", onAnswerUpdate)
-
-
+        client.subscribe("/topic/answer", onAnswerUpdate);
+        client.subscribe("/user/topic/answer", onAnswerUpdate);
 
         client.subscribe("/topic/on-buzzer", (_) => {
             buzzerAudio.play();
@@ -410,7 +438,7 @@ function hideAnswer() {
 }
 
 function resetQuestion() {
-    Array.from(questionWrapper.children).forEach((v) => {
+    questionDivs.forEach((v) => {
         v.replaceChildren();
         v.innerText = '';
     });
@@ -422,7 +450,6 @@ function resetQuestion() {
         v.replaceChildren();
     });
 
-    setAnswerControlsEnabled(true);
     answerText.value = '';
     answerNumber.value = '';
     answerSort.replaceChildren();
@@ -432,24 +459,14 @@ function resetQuestion() {
     hintDiv.replaceChildren();
     answerDiv.replaceChildren();
 
-    gamemasterAnswers.replaceChildren();
-    playerAnswers.replaceChildren();
+    questionAnswers.replaceChildren();
 
     hideAnswer();
+
+    questionWrapper.style.display = 'none';
+    board.style.display = null;
 }
 
-function setAnswerControlsEnabled(enabled) {
-    Array.from(questionAnswerToolWrapper.children).forEach((v) => {
-        switch (v.id) {
-            case submitButton.id, buzzer.id:
-                v.disabled = !enabled;
-                break;
-            default:
-                v.disabled = !enabled;
-                break;
-        }
-    });
-}
 
 function updateSubmitButton(listener) {
     const newSubmit = submitButton.cloneNode(true);
@@ -460,6 +477,9 @@ function updateSubmitButton(listener) {
 }
 
 function submitAnswer(answer) {
+    if (isGameMaster) {
+        return;
+    }
     stompClient.send("/app/submit-answer", {}, JSON.stringify({ answer }));
 }
 
@@ -474,19 +494,10 @@ function dragoverHandler(ev) {
 function dropHandler(ev) {
     ev.preventDefault();
     const data = ev.dataTransfer.getData("text");
-    swapElements(document.getElementById(data), ev.target)
+    const dragged = document.getElementById(data);
+    ev.target.parentNode.insertBefore(dragged, ev.target);
 }
 
-function swapElements(el1, el2) {
-    const parent1 = el1.parentNode;
-    const parent2 = el2.parentNode;
-
-    const next1 = el1.nextSibling;
-    const next2 = el2.nextSibling;
-
-    parent1.insertBefore(el2, next1);
-    parent2.insertBefore(el1, next2);
-}
 
 function makeVideoHTML(src) {
     return src ? `<div style="position:relative; width:100%; height:0px; padding-bottom:56.250%">
