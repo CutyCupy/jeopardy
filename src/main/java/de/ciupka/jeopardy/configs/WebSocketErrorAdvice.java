@@ -1,6 +1,5 @@
 package de.ciupka.jeopardy.configs;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -10,7 +9,6 @@ public class WebSocketErrorAdvice {
 
     private SimpMessagingTemplate messagingTemplate;
 
-    @Autowired
     public WebSocketErrorAdvice(SimpMessagingTemplate messagingTemplate) {
         this.messagingTemplate = messagingTemplate;
     }

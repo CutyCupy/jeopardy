@@ -477,6 +477,9 @@ function updateSubmitButton(listener) {
 }
 
 function submitAnswer(answer) {
+    if (isGameMaster) {
+        return;
+    }
     stompClient.send("/app/submit-answer", {}, JSON.stringify({ answer }));
 }
 

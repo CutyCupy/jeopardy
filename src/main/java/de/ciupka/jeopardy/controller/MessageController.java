@@ -103,9 +103,12 @@ public class MessageController {
     }
 
     @MessageMapping("/submit-answer")
-    public boolean submitAnswer(SubmittedAnswer answer, UserPrincipal principal)
+    public void submitAnswer(SubmittedAnswer answer, UserPrincipal principal)
             throws PlayerNotFoundException, NoQuestionSelectedException, CategoryNotFoundException,
             QuestionNotFoundException {
+        if (principal.getID().equals(this.game.getMaster())) {
+            return;
+        }
         Player answering = this.game.getPlayerByID(principal.getID());
         if (answering == null) {
             throw new PlayerNotFoundException(principal.getID());
@@ -124,8 +127,6 @@ public class MessageController {
         }
 
         this.notifications.sendAnswers();
-
-        return false;
     }
 
     @MessageMapping("/answer")
