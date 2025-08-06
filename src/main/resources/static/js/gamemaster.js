@@ -1,5 +1,5 @@
 import { hideJoinButtons } from "./lobby.js";
-import { questionAnswersWrapper, questionAnswerToolWrapper } from "./question.js";
+import { questionAnswerToolWrapper } from "./question.js";
 import { registerSubscription, stompClient } from "./websocket.js";
 
 export let isGameMaster;
@@ -41,7 +41,8 @@ function startGame() {
 }
 
 function becomeGameMaster() {
-    stompClient.send("/app/gamemaster", {});
+    const password = prompt("Bitte gib das Master-Passwort ein:");
+    stompClient.send("/app/gamemaster", {}, password);
 }
 
 export function reveal(more) {

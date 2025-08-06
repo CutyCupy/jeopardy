@@ -15,7 +15,7 @@ public class QuestionUpdate {
     public QuestionUpdate(GameService game) {
         try {
             this.question = game.getSelectedQuestion();
-            this.color = this.question.getCategory().getColorCode();
+            this.color = this.question.getCategory().getColor();
         } catch (CategoryNotFoundException e) {
         } catch (QuestionNotFoundException e) {
         }

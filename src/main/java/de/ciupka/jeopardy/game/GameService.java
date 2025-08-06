@@ -1,7 +1,11 @@
 package de.ciupka.jeopardy.game;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -9,13 +13,18 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.exc.StreamReadException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 
+import de.ciupka.jeopardy.configs.Views;
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
 import de.ciupka.jeopardy.exception.AnswerNotFoundException;
 import de.ciupka.jeopardy.exception.CategoryNotFoundException;
 import de.ciupka.jeopardy.exception.GameAlreadyStartedException;
+import de.ciupka.jeopardy.exception.InvalidMasterPasswordException;
 import de.ciupka.jeopardy.exception.NoQuestionSelectedException;
 import de.ciupka.jeopardy.exception.PlayerAlreadyExistsException;
 import de.ciupka.jeopardy.exception.QuestionAlreadyAnsweredException;
@@ -29,23 +38,59 @@ import de.ciupka.jeopardy.game.questions.answer.Answer;
 public class GameService {
     private List<Player> players;
 
-    private Category[] board;
+    private List<Category> board;
     private QuestionIdentifier selectedQuestionIdentifier;
 
     private int currentPlayerIdx = -1;
     private UUID master;
 
+    private String masterPassword;
+
     public GameService() throws CategoryNotFoundException, IOException {
         this.players = new ArrayList<>();
-        ObjectMapper mapper = new ObjectMapper();
 
-        try (InputStream inputStream = GameService.class.getResourceAsStream("/questions.json")) {
-            if (inputStream == null) {
-                throw new IllegalStateException("questions.json not found in resources!");
+        this.board = readQuestions();
+
+        this.masterPassword = readPassword();
+    }
+
+    public static File getGameFolder() {
+        File folder = new File(System.getProperty("user.home"), "jeopardy");
+
+        folder.mkdirs();
+        return folder;
+    }
+
+    public static List<Category> readQuestions() throws StreamReadException, DatabindException, IOException {
+        ObjectReader mapper = new ObjectMapper().readerWithView(Views.Storage.class)
+                .forType(new TypeReference<List<Category>>() {
+                });
+
+        File folder = getGameFolder();
+
+        try (InputStream inputStream = new FileInputStream(new File(folder, "questions.json"))) {
+            List<Category> result = mapper.readValue(inputStream);
+
+            for (int catI = 0; catI < result.size(); catI++) {
+                Category cat = result.get(catI);
+                List<AbstractQuestion<?>> qsts = cat.getQuestions();
+                for (int qstI = 0; qstI < qsts.size(); qstI++) {
+                    AbstractQuestion<?> qst = qsts.get(qstI);
+                    qst.setCategory(cat);
+                }
             }
 
-            this.board = mapper.readValue(inputStream, new TypeReference<Category[]>() {
-            });
+            return result;
+        }
+    }
+
+    public static String readPassword() throws IOException {
+        File folder = getGameFolder();
+
+        try (InputStream inputStream = new FileInputStream(new File(folder, "password.txt"))) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+
+            return reader.readLine();
         }
     }
 
@@ -81,15 +126,15 @@ public class GameService {
         return sorted.toArray(new Player[sorted.size()]);
     }
 
-    public Category[] getBoard() {
+    public List<Category> getBoard() {
         return this.board;
     }
 
     public Category getCategory(int idx) throws CategoryNotFoundException {
-        if (idx < 0 || idx >= this.board.length) {
+        if (idx < 0 || idx >= this.board.size()) {
             throw new CategoryNotFoundException();
         }
-        return this.board[idx];
+        return this.board.get(idx);
     }
 
     public void resetQuestion() {
@@ -196,7 +241,10 @@ public class GameService {
         return this.master;
     }
 
-    public void setMaster(UUID id) {
+    public void setMaster(UUID id, String password) throws InvalidMasterPasswordException {
+        if (this.masterPassword != null && !this.masterPassword.equals(password)) {
+            throw new InvalidMasterPasswordException();
+        }
         this.master = id;
     }
 
@@ -220,7 +268,7 @@ public class GameService {
         }
 
         if (id.equals(master)) {
-            setMaster(null);
+            this.master = null;
             return true;
         }
 

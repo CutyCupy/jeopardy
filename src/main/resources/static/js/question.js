@@ -174,7 +174,7 @@ export function registerQuestion() {
                 board.style.display = 'none';
             }
             if (metadataGrp.complete) {
-                switch (update.question.type.name) {
+                switch (update.question.type) {
                     case 'NORMAL':
                         buzzer.style.display = null;
                         break;

@@ -9,17 +9,16 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-@JsonSerialize(using = Type.Serializer.class)
-@JsonDeserialize(using = Type.Deserializer.class)
+// @JsonSerialize(using = Type.Serializer.class)
+// @JsonDeserialize(using = Type.Deserializer.class)
 public enum Type {
     NORMAL("Buzzerfrage", true),
     TEXT("Textfrage", false),
     ESTIMATE("Schätzfrage", false),
     SORT("Sortierfrage", false),
-    VIDEO("Videofrage", false);
+    VIDEO("Videofrage", false),
+    HINT("'Wer bin ich?' Frage", true);
 
     private Type(String name, boolean hasPenalty) {
         this.title = name;

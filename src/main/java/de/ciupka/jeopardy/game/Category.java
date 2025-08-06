@@ -1,26 +1,29 @@
 package de.ciupka.jeopardy.game;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import de.ciupka.jeopardy.exception.QuestionNotFoundException;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Category {
 
     private String name;
-    private String colorCode;
+    private String color;
     private List<AbstractQuestion<?>> questions;
 
     @JsonCreator
-    public Category(@JsonProperty("name") String name, 
-        @JsonProperty("colorCode") String colorCode,
-        @JsonProperty("questions") List<AbstractQuestion<?>> questions) {
+    public Category(@JsonProperty("name") String name,
+            @JsonProperty("color") String color,
+            @JsonProperty("questions") List<AbstractQuestion<?>> questions) {
         this.name = name;
-        this.colorCode = colorCode;
-        this.questions = questions;
+        this.color = color;
+        this.questions = questions == null ? new ArrayList<>() : questions;
     }
 
     public String getName() {
@@ -28,6 +31,7 @@ public class Category {
     }
 
     public List<AbstractQuestion<?>> getQuestions() {
+        questions.sort((a, b) -> a.getPoints() - b.getPoints());
         return questions;
     }
 
@@ -38,7 +42,15 @@ public class Category {
         return this.questions.get(idx);
     }
 
-    public String getColorCode() {
-        return colorCode;
+    public String getColor() {
+        return color;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
     }
 }

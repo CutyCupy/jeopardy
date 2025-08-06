@@ -6,9 +6,11 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.converter.json.MappingJacksonValue;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import de.ciupka.jeopardy.configs.Views;
 import de.ciupka.jeopardy.controller.messages.AnswerUpdate;
 import de.ciupka.jeopardy.controller.messages.BoardUpdate;
 import de.ciupka.jeopardy.controller.messages.LobbyUpdate;
@@ -42,19 +44,20 @@ public class NotificationService {
     @Autowired
     private GameService game;
 
-    @Autowired
     public NotificationService(SimpMessagingTemplate messagingTemplate) {
         this.messagingTemplate = messagingTemplate;
     }
 
     private void message(String topic, Object message, UUID... users) {
+        MappingJacksonValue wrapper = new MappingJacksonValue(message);
+        wrapper.setSerializationView(Views.WebSocket.class);
         if (users.length > 0) {
             for (UUID userId : users) {
-                messagingTemplate.convertAndSendToUser(userId.toString(), topic, message);
+                messagingTemplate.convertAndSendToUser(userId.toString(), topic, wrapper);
             }
             return;
         }
-        messagingTemplate.convertAndSend(topic, message);
+        messagingTemplate.convertAndSend(topic, wrapper);
     }
 
     public void sendLobbyUpdate(final UUID... users) {
@@ -125,7 +128,6 @@ public class NotificationService {
         this.message(ACTIVE_PLAYER_UPDATE, true, p.getId());
         this.message(ACTIVE_PLAYER_UPDATE, false,
                 Arrays.stream(users).filter((v) -> !p.getId().equals(v)).toArray(UUID[]::new));
-
-        ;
     }
+
 }

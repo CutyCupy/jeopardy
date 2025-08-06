@@ -8,8 +8,10 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import de.ciupka.jeopardy.configs.Views;
 import de.ciupka.jeopardy.exception.AnswerNotFoundException;
 import de.ciupka.jeopardy.exception.RevealException;
 import de.ciupka.jeopardy.game.Category;
@@ -20,30 +22,33 @@ import de.ciupka.jeopardy.game.questions.reveal.GroupType;
 import de.ciupka.jeopardy.game.questions.reveal.Step;
 import de.ciupka.jeopardy.game.questions.reveal.StepType;
 
-@JsonTypeInfo(
-    use = JsonTypeInfo.Id.NAME,
-    include = JsonTypeInfo.As.PROPERTY,
-    property = "type"
-)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
-    @JsonSubTypes.Type(value = EstimateQuestion.class, name = "ESTIMATE"),
-    @JsonSubTypes.Type(value = Question.class, name = "NORMAL"),
-    @JsonSubTypes.Type(value = SortQuestion.class, name = "SORT"),
-    @JsonSubTypes.Type(value = TextQuestion.class, name = "TEXT"),
-    @JsonSubTypes.Type(value = VideoQuestion.class, name = "VIDEO")
+        @JsonSubTypes.Type(value = EstimateQuestion.class, name = "ESTIMATE"),
+        @JsonSubTypes.Type(value = Question.class, name = "NORMAL"),
+        @JsonSubTypes.Type(value = SortQuestion.class, name = "SORT"),
+        @JsonSubTypes.Type(value = TextQuestion.class, name = "TEXT"),
+        @JsonSubTypes.Type(value = VideoQuestion.class, name = "VIDEO"),
+        @JsonSubTypes.Type(value = HintQuestion.class, name = "HINT")
 })
 public abstract class AbstractQuestion<T> {
 
+    @JsonIgnore
     private final Type type;
+    @JsonView(Views.Common.class)
     private final int points;
+    @JsonView(Views.Common.class)
     private final T answer;
+    @JsonView(Views.Common.class)
     private final String question;
 
+    @JsonView(Views.WebSocket.class)
     private boolean locked;
 
     @JsonIgnore
     private Category category;
 
+    @JsonView(Views.WebSocket.class)
     private final Map<GroupType, Group> groups = new EnumMap<>(GroupType.class);
 
     @JsonIgnore
@@ -61,7 +66,8 @@ public abstract class AbstractQuestion<T> {
     public void setCategory(Category category) {
         this.category = category;
 
-        groups.get(GroupType.METADATA).getSteps().get(0).setContent(String.format("%s - %d Punkte", category.getName(), points));
+        groups.get(GroupType.METADATA).getSteps().get(0)
+                .setContent(String.format("%s - %d Punkte", category.getName(), points));
     }
 
     private void initDefaultGroups() {
@@ -84,10 +90,12 @@ public abstract class AbstractQuestion<T> {
         return points;
     }
 
+    @JsonIgnore
     public int getWrongPoints() {
         return type.getHasPenalty() ? -getPoints() : 0;
     }
 
+    @JsonView(Views.WebSocket.class)
     public boolean isAnswered() {
         if (answers.stream().anyMatch(a -> a.getCorrect() == null)) {
             return false;
@@ -95,6 +103,7 @@ public abstract class AbstractQuestion<T> {
         return groups.get(GroupType.ANSWER).isComplete();
     }
 
+    @JsonIgnore
     public Type getType() {
         return type;
     }
@@ -189,5 +198,9 @@ public abstract class AbstractQuestion<T> {
         for (Group grp : groups.values()) {
             grp.reset();
         }
+    }
+
+    public String getQuestion() {
+        return question;
     }
 }

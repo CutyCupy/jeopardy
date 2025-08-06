@@ -1,11 +1,18 @@
 package de.ciupka.jeopardy.controller;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.annotation.SendToUser;
 import org.springframework.stereotype.Controller;
+
+import com.fasterxml.jackson.core.exc.StreamReadException;
+import com.fasterxml.jackson.databind.DatabindException;
 
 import de.ciupka.jeopardy.configs.UserPrincipal;
 import de.ciupka.jeopardy.controller.messages.AnswerEvaluation;
@@ -15,6 +22,7 @@ import de.ciupka.jeopardy.exception.AnswerNotFoundException;
 import de.ciupka.jeopardy.exception.CategoryNotFoundException;
 import de.ciupka.jeopardy.exception.EvaluatableQuestionAnsweredException;
 import de.ciupka.jeopardy.exception.GameAlreadyStartedException;
+import de.ciupka.jeopardy.exception.InvalidMasterPasswordException;
 import de.ciupka.jeopardy.exception.InvalidQuestionStateException;
 import de.ciupka.jeopardy.exception.NoQuestionSelectedException;
 import de.ciupka.jeopardy.exception.NotGameMasterException;
@@ -25,8 +33,10 @@ import de.ciupka.jeopardy.exception.QuestionAlreadyAnsweredException;
 import de.ciupka.jeopardy.exception.QuestionAlreadySelectedException;
 import de.ciupka.jeopardy.exception.QuestionNotFoundException;
 import de.ciupka.jeopardy.exception.RevealException;
+import de.ciupka.jeopardy.game.Category;
 import de.ciupka.jeopardy.game.GameService;
 import de.ciupka.jeopardy.game.Player;
+import de.ciupka.jeopardy.game.QuestionEditingService;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 import de.ciupka.jeopardy.game.questions.Evaluatable;
 import de.ciupka.jeopardy.game.questions.Type;
@@ -43,6 +53,9 @@ public class MessageController {
 
     @Autowired
     private GameService game;
+
+    @Autowired
+    private QuestionEditingService editing;
 
     @Autowired
     private NotificationService notifications;
@@ -222,8 +235,8 @@ public class MessageController {
 
     @MessageMapping("/gamemaster")
     @SendToUser("/topic/gamemaster")
-    public boolean setGameMaster(UserPrincipal principal) {
-        this.game.setMaster(principal.getID());
+    public boolean setGameMaster(UserPrincipal principal, String password) throws InvalidMasterPasswordException {
+        this.game.setMaster(principal.getID(), password);
 
         this.notifications.sendGameMasterUpdate();
 
@@ -319,4 +332,89 @@ public class MessageController {
         this.notifications.sendAnswers();
     }
 
+    @MessageMapping("/start-editing")
+    @SendToUser("/topic/editing-board")
+    public List<Category> startEditing(UserPrincipal principal, String password) throws InvalidMasterPasswordException {
+        if (editing.getMasterPassword() != null && !editing.getMasterPassword().equals(password)) {
+            throw new InvalidMasterPasswordException();
+        }
+
+        return editing.getBoard();
+    }
+
+    @MessageMapping("/edit-question")
+    @SendToUser("/topic/editing-board")
+    public List<Category> editQuestion(UserPrincipal principal,
+            @Payload AbstractQuestion<?> question,
+            @Header("category") int cIdx,
+            @Header("question") int qIdx) throws StreamReadException, DatabindException, IOException {
+        Category cat = editing.getBoard().get(cIdx);
+        question.setCategory(cat);
+
+        List<AbstractQuestion<?>> questions = cat.getQuestions();
+
+        if (qIdx < 0) {
+            questions.add(question);
+        } else {
+            questions.set(qIdx, question);
+        }
+
+        editing.save();
+
+        return editing.getBoard();
+    }
+
+    @MessageMapping("/edit-category")
+    @SendToUser("/topic/editing-board")
+    public List<Category> editCategory(UserPrincipal principal,
+            @Payload Category category,
+            @Header("category") int cIdx) throws StreamReadException, DatabindException, IOException {
+
+        List<Category> board = editing.getBoard();
+
+        if (cIdx < 0) {
+            board.add(category);
+        } else {
+            Category current = board.get(cIdx);
+            current.setColor(category.getColor());
+            current.setName(category.getName());
+        }
+
+        editing.save();
+
+        return board;
+    }
+
+    @MessageMapping("/delete-question")
+    @SendToUser("/topic/editing-board")
+    public List<Category> deleteQuestion(UserPrincipal principal,
+            @Header("category") int cIdx,
+            @Header("question") int qIdx)
+            throws StreamReadException, DatabindException, IOException {
+        Category cat = editing.getBoard().get(cIdx);
+
+        List<AbstractQuestion<?>> questions = cat.getQuestions();
+
+        if (qIdx >= 0) {
+            questions.remove(qIdx);
+            editing.save();
+        }
+
+        return editing.getBoard();
+    }
+
+    @MessageMapping("/delete-category")
+    @SendToUser("/topic/editing-board")
+    public List<Category> deleteCategory(UserPrincipal principal,
+            @Header("category") int cIdx) throws StreamReadException, DatabindException, IOException {
+
+        List<Category> board = editing.getBoard();
+
+        if (cIdx >= 0) {
+            board.remove(cIdx);
+            editing.save();
+        }
+
+        return board;
+    }
 }
