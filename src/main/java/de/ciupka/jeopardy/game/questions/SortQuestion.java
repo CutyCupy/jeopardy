@@ -23,7 +23,7 @@ import de.ciupka.jeopardy.game.questions.reveal.StepType;
 
 public class SortQuestion extends AbstractQuestion<SortOptions> implements Evaluatable<SortOption[]> {
 
-    @JsonView(Views.Common.class)
+    @JsonView(Views.WebSocket.class)
     private String[] options;
 
     @JsonCreator

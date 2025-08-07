@@ -6,17 +6,22 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonView;
 
+import de.ciupka.jeopardy.configs.Views;
 import de.ciupka.jeopardy.exception.QuestionNotFoundException;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Category {
 
+    @JsonView(Views.Common.class)
     private String name;
+    @JsonView(Views.Common.class)
     private String color;
+    @JsonView(Views.Common.class)
     private List<AbstractQuestion<?>> questions;
-
+    
     @JsonCreator
     public Category(@JsonProperty("name") String name,
             @JsonProperty("color") String color,

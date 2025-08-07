@@ -25,6 +25,8 @@ public class HintQuestion extends AbstractQuestion<String> {
         @JsonProperty("hints") String[] hints) {
         super(question, points, answer, Type.HINT);
 
+        this.hints = hints;
+
         for (String hint : hints) {
             this.getGroups().get(GroupType.HINT).addStep(new Step(StepType.TEXT, hint));
         }

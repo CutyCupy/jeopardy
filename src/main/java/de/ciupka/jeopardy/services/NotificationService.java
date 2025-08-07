@@ -49,15 +49,13 @@ public class NotificationService {
     }
 
     private void message(String topic, Object message, UUID... users) {
-        MappingJacksonValue wrapper = new MappingJacksonValue(message);
-        wrapper.setSerializationView(Views.WebSocket.class);
         if (users.length > 0) {
             for (UUID userId : users) {
-                messagingTemplate.convertAndSendToUser(userId.toString(), topic, wrapper);
+                messagingTemplate.convertAndSendToUser(userId.toString(), topic, message);
             }
             return;
         }
-        messagingTemplate.convertAndSend(topic, wrapper);
+        messagingTemplate.convertAndSend(topic, message);
     }
 
     public void sendLobbyUpdate(final UUID... users) {
