@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import de.ciupka.jeopardy.configs.Views;
 import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.answer.Answer;
+import de.ciupka.jeopardy.game.questions.answer.Tool;
 import de.ciupka.jeopardy.game.questions.reveal.GroupType;
 import de.ciupka.jeopardy.game.questions.reveal.Step;
 import de.ciupka.jeopardy.game.questions.reveal.StepType;
@@ -25,8 +26,9 @@ public class VideoQuestion extends AbstractQuestion<String> {
             @JsonProperty("points") int points,
             @JsonProperty("answer") String answer,
             @JsonProperty("answerVideo") String answerVideo,
-            @JsonProperty("questionVideo") String questionVideo) {
-        super(question, points, answer, Type.VIDEO);
+            @JsonProperty("questionVideo") String questionVideo,
+            @JsonProperty("answerTool") Tool answerTool) {
+        super(question, points, answer, Type.VIDEO, answerTool);
         this.questionVideo = questionVideo;
         this.answerVideo = answerVideo;
 
@@ -39,6 +41,10 @@ public class VideoQuestion extends AbstractQuestion<String> {
 
     public String getQuestionVideo() {
         return this.questionVideo;
+    }
+
+    public String getAnswerVideo() {
+        return answerVideo;
     }
 
     @Override

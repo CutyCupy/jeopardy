@@ -17,6 +17,7 @@ import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.answer.Answer;
 import de.ciupka.jeopardy.game.questions.answer.SortOption;
 import de.ciupka.jeopardy.game.questions.answer.SortOptions;
+import de.ciupka.jeopardy.game.questions.answer.Tool;
 import de.ciupka.jeopardy.game.questions.reveal.GroupType;
 import de.ciupka.jeopardy.game.questions.reveal.Step;
 import de.ciupka.jeopardy.game.questions.reveal.StepType;
@@ -31,7 +32,7 @@ public class SortQuestion extends AbstractQuestion<SortOptions> implements Evalu
             @JsonProperty("points") int points,
             @JsonProperty("answer") SortOptions answer,
             @JsonProperty("descending") boolean descending) {
-        super(question, points, answer.asSortedList(descending), Type.SORT);
+        super(question, points, answer.asSortedList(descending), Type.SORT, Tool.SORT);
 
         List<String> optionList = Arrays.stream(answer.getOptions())
                 .map(SortOption::getName)

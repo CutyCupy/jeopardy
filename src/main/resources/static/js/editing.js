@@ -8,6 +8,7 @@ const categoryDiv = document.getElementById("category-form");
 const questionFields = document.getElementById("question-fields");
 
 const typeOptions = ["NORMAL", "ESTIMATE", "SORT", "TEXT", "VIDEO", "HINT"];
+const toolOptions = ["BUZZER", "TEXT", "NUMBER", "SORT"];
 
 export function registerEditing() {
     registerSubscription((client) => {
@@ -127,7 +128,7 @@ function questionSubmitCallback(cIdx, qIdx) {
         const result = {};
 
         for (var field of fields) {
-            result[field.id] = field.type == 'checkbox' ? field.selected : field.value; // TODO: Sicherstellen, dass hier immer die richtigen Values drin stehen
+            result[field.id] = field.type == 'checkbox' ? field.checked : field.value; // TODO: Sicherstellen, dass hier immer die richtigen Values drin stehen
         }
 
         stompClient.send("/app/edit-question", {
@@ -200,7 +201,6 @@ function showQuestion(question, cIdx, qIdx) {
                 }
         }
         element.value = question[key];
-        element.innerText = question[key];
         element.selected = !!question[key];
     }
 
@@ -270,13 +270,13 @@ function onTypeChange() {
             questionFields.appendChild(optionsDiv)
             break;
         }
-        case "NORMAL":
-        case "TEXT": {
+        case "NORMAL": {
             console.log("normal or text");
             const answerField = document.createElement('textarea');
             answerField.id = "answer";
 
             questionFields.appendChild(asFormGroupItem(answerField, "Antwort"));
+            questionFields.appendChild(getAnswerTool());
             break;
         }
         case "HINT":
@@ -316,6 +316,8 @@ function onTypeChange() {
             answerField.id = "answer";
 
             questionFields.appendChild(asFormGroupItem(answerField, "Antwort"));
+            questionFields.appendChild(getAnswerTool());
+
             break;
         }
     }
@@ -442,4 +444,20 @@ function showCategory(category, index) {
 
 
     displayOnly(categoryDiv);
+}
+
+function getAnswerTool() {
+    const answerTool = document.createElement('select')
+    answerTool.id = "answerTool";
+
+
+    answerTool.replaceChildren(...toolOptions.map((type) => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.innerText = type;
+
+        return option;
+    }));
+
+    return asFormGroupItem(answerTool, "Art der Antwort");
 }

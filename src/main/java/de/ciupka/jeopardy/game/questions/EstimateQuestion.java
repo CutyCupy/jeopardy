@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.answer.Answer;
+import de.ciupka.jeopardy.game.questions.answer.Tool;
 import de.ciupka.jeopardy.game.questions.reveal.GroupType;
 import de.ciupka.jeopardy.game.questions.reveal.Step;
 import de.ciupka.jeopardy.game.questions.reveal.StepType;
@@ -17,10 +18,10 @@ public class EstimateQuestion extends AbstractQuestion<Integer> implements Evalu
 
     @JsonCreator
     public EstimateQuestion(
-        @JsonProperty("question") String question, 
-        @JsonProperty("points") int points, 
-        @JsonProperty("answer") Integer answer) {
-        super(question, points, answer, Type.ESTIMATE);
+            @JsonProperty("question") String question,
+            @JsonProperty("points") int points,
+            @JsonProperty("answer") Integer answer) {
+        super(question, points, answer, Type.ESTIMATE, Tool.NUMBER);
 
         getGroups().get(GroupType.ANSWER)
                 .addStep(new Step(StepType.TEXT, "Korrekte Schätzung: " + answer));

@@ -68,7 +68,12 @@ public class GameService {
 
         File folder = getGameFolder();
 
-        try (InputStream inputStream = new FileInputStream(new File(folder, "questions.json"))) {
+        File questions = new File(folder, "questions.json");
+        if (!questions.exists()) {
+            return new ArrayList<>();
+        }
+
+        try (InputStream inputStream = new FileInputStream(questions)) {
             List<Category> result = mapper.readValue(inputStream);
 
             for (int catI = 0; catI < result.size(); catI++) {
@@ -86,8 +91,12 @@ public class GameService {
 
     public static String readPassword() throws IOException {
         File folder = getGameFolder();
+        File passwordFile = new File(folder, "password.txt");
+        if (!passwordFile.exists()) {
+            return null;
+        }
 
-        try (InputStream inputStream = new FileInputStream(new File(folder, "password.txt"))) {
+        try (InputStream inputStream = new FileInputStream(passwordFile)) {
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
 
             return reader.readLine();

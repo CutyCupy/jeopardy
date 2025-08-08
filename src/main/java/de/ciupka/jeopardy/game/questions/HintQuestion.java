@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import de.ciupka.jeopardy.configs.Views;
 import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.answer.Answer;
+import de.ciupka.jeopardy.game.questions.answer.Tool;
 import de.ciupka.jeopardy.game.questions.reveal.GroupType;
 import de.ciupka.jeopardy.game.questions.reveal.Step;
 import de.ciupka.jeopardy.game.questions.reveal.StepType;
@@ -19,11 +20,11 @@ public class HintQuestion extends AbstractQuestion<String> {
 
     @JsonCreator
     public HintQuestion(
-        @JsonProperty("question") String question, 
-        @JsonProperty("points") int points, 
-        @JsonProperty("answer") String answer, 
-        @JsonProperty("hints") String[] hints) {
-        super(question, points, answer, Type.HINT);
+            @JsonProperty("question") String question,
+            @JsonProperty("points") int points,
+            @JsonProperty("answer") String answer,
+            @JsonProperty("hints") String[] hints) {
+        super(question, points, answer, Type.HINT, Tool.BUZZER);
 
         this.hints = hints;
 
