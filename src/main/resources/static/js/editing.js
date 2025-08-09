@@ -45,6 +45,13 @@ export function registerEditing() {
                     const question = category.questions[qIdx];
                     const button = document.createElement("button");
 
+                    const icon = document.createElement("i");
+                    icon.classList.add(getBootstrapIcon(question.type), "me-2");
+
+                    const label = document.createElement("span");
+                    label.innerText = question.points;
+
+
                     button.style.setProperty('--background', buttonNormal);
                     button.style.setProperty('--color', textColorNormal);
                     button.style.setProperty('--hover-background', buttonHover);
@@ -52,12 +59,13 @@ export function registerEditing() {
 
                     button.classList.add("col", "question-btn");
 
-                    button.innerText = question.points;
-
                     button.addEventListener('click', callbackClosure({ question, cIdx, qIdx }, (q) => {
                         showQuestion(q.question, q.cIdx, q.qIdx);
                     }),
                     );
+
+                    button.appendChild(icon);
+                    button.appendChild(label);
 
                     column.appendChild(button);
                 }
@@ -119,6 +127,25 @@ export function registerEditing() {
 
 }
 
+function getBootstrapIcon(type) {
+    switch (type) {
+        case "NORMAL":
+            return "bi-question-circle-fill";
+        case "ESTIMATE":
+            return "bi-calculator-fill";
+        case "SORT":
+            return "bi-funnel-fill";
+        case "TEXT":
+            return "bi-chat-text-fill";
+        case "VIDEO":
+            return "bi-camera-video-fill";
+        case "HINT":
+            return "bi-lightbulb-fill";
+        default:
+            return "bi-question-circle-fill"; // Fallback
+    }
+}
+
 function questionSubmitCallback(cIdx, qIdx) {
     return (ev) => {
         ev.preventDefault();
@@ -157,7 +184,7 @@ function categorySubmitCallback(index) {
 }
 
 export function displayOnly(display) {
-    boardDiv.style.display = display == boardDiv ? null : 'none';
+    boardDiv.style.display = null;
     questionDiv.style.display = display == questionDiv ? null : 'none';
     categoryDiv.style.display = display == categoryDiv ? null : 'none';
 }
