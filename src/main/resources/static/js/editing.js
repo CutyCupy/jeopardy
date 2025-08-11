@@ -331,12 +331,12 @@ function onTypeChange() {
             console.log("video");
             const questionVideo = document.createElement('input');
             questionVideo.id = "questionVideo";
-            // TODO: Check for correct video url + parse video url to streamable code.
+            addOnlyStreamableCheck(questionVideo);
 
             questionFields.appendChild(asFormGroupItem(questionVideo, "Frage-Video"));
             const answerVideo = document.createElement('input');
             answerVideo.id = "answerVideo";
-            // TODO: Check for correct video url + parse video url to streamable code.
+            addOnlyStreamableCheck(answerVideo);
 
             questionFields.appendChild(asFormGroupItem(answerVideo, "Antwort-Video"));
             const answerField = document.createElement('textarea');
@@ -348,6 +348,44 @@ function onTypeChange() {
             break;
         }
     }
+}
+
+function addOnlyStreamableCheck(input) {
+    input.addEventListener('keydown', function (e) {
+        const allowedKeys = [
+            'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+            'Tab', 'Home', 'End'
+        ];
+        if (!allowedKeys.includes(e.key) && !(e.ctrlKey && e.key.toLowerCase() === 'v')) {
+            e.preventDefault();
+        }
+    });
+
+    input.addEventListener('paste', function (e) {
+        e.preventDefault(); // Verhindert das Standard-Einfügen
+
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text').trim();
+
+        try {
+            const url = new URL(pastedText);
+
+            if (url.hostname.includes('streamable.com')) {
+                // Hol den letzten Teil nach dem letzten Slash
+                const parts = url.pathname.split('/').filter(Boolean);
+                if (parts.length > 0) {
+                    const lastPart = parts[parts.length - 1];
+                    input.value = lastPart;
+                    errorMsg.textContent = '';
+                } else {
+                    errorMsg.textContent = 'Ungültiger Streamable-Link.';
+                }
+            } else {
+                errorMsg.textContent = 'Nur Links von streamable.com sind erlaubt.';
+            }
+        } catch {
+            errorMsg.textContent = 'Kein gültiger Link.';
+        }
+    });
 }
 
 function onOptionChange() {
