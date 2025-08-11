@@ -342,7 +342,7 @@ function onTypeChange() {
             blurField.id = "blurDuration";
             blurField.type = 'number';
 
-            questionFields.appendChild(blurField);
+            questionFields.appendChild(asFormGroupItem(blurField, "Blur in ms"));
 
             questionFields.appendChild(asFormGroupItem(answerVideo, "Antwort-Video"));
             const answerField = document.createElement('textarea');

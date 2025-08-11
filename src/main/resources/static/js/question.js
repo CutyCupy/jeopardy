@@ -62,9 +62,7 @@ function makeStep(step) {
         case "IMAGE":
             break;
         case "VIDEO":
-            blueprint = document.createElement('div');
-            blueprint.innerHTML = makeVideoHTML(step.content.video, !!step.content.blurDuration);
-            addVideoBlur(blueprint, step.content);
+            blueprint = addVideoBlur(step.content);
             break;
         case "AUDIO":
             break;
@@ -82,6 +80,7 @@ export function registerQuestion() {
             if (!update.question) {
                 resetQuestion();
                 board.style.display = null;
+                videos = [];
                 return;
             }
             hideAnswer();
@@ -291,8 +290,10 @@ export function registerQuestion() {
         function onAnswerUpdate(msg) {
             var update = JSON.parse(msg.body);
 
-            if (animationRunning) {
-                animationRunning = update.tool != 'BUZZER' || !update.answers.find((v) => v.correct == null);
+            if (update.tool == 'BUZZER' && update.answers.find((v) => v.correct == null)) {
+                stopVideoBlur();
+            } else {
+                restartVideoBlur();
             }
 
             const enabled = !update.answers.find((v) => v.player.id == myID);
@@ -333,7 +334,7 @@ export function registerQuestion() {
                 nameCell.id = nameID
                 nameCell.innerText = answer.player.name;
 
-                if (answers.find((v) => !!v.answer)) {
+                if (update.answers.find((v) => !!v.answer)) {
                     var answerCell = document.getElementById(answerID) || row.insertCell(1);
                     answerCell.id = answerID;
                     answerCell.innerText = answer.answer;
@@ -498,7 +499,7 @@ function dropHandler(ev) {
 
 
 function makeVideoHTML(src, disableLoop) {
-    return src ? `<div style="position:relative; width:100%; height:0px; padding-bottom:56.250%; pointer-events: none">
+    return src ? `<div style="position:relative; width:100%; height:0px; padding-bottom:56.250%; pointer-events: ${isGameMaster ? 'inherits' : 'none'}">
                 <iframe allow="fullscreen;autoplay" allowfullscreen height="100%" 
                 src="https://streamable.com/e/${src}?autoplay=1&loop=${disableLoop ? 0 : 1}&controls=0&showcontrols=0" width="100%" 
                 style="border:none; width:100%; height:100%; position:absolute; left:0px; top:0px; overflow:hidden;">
@@ -508,42 +509,56 @@ function makeVideoHTML(src, disableLoop) {
 
 
 let maxBlur = 10;
-let animationRunning = true;
 
 let videos = [];
 
 
-function addVideoBlur(element, data) {
+function addVideoBlur(data) {
+    const element = document.createElement('div');
     element.id = `video-${videos.length}`
+    element.innerHTML = makeVideoHTML(data.video, !!data.blurDuration);
     videos.push({
         currentBlur: maxBlur,
-        duration: data.blurDuration * 1000,
+        duration: data.blurDuration,
         video: data.video,
     });
+
+    return element;
 }
 
 // TODO: OnAnswerUpdate
-function stopVideoBlur(video) {
-
-
+function stopVideoBlur() {
+    for (var i = 0; i < videos.length; i++) {
+        const element = document.getElementById(`video-${i}`);
+        if (!element) {
+            continue;
+        }
+        element.innerHTML = "";
+    }
 }
 
 // TODO: OnAnswerUpdate
-function restartVideoBlurred(video) {
+function restartVideoBlur() {
+    for (var i = 0; i < videos.length; i++) {
+        const element = document.getElementById(`video-${i}`);
+        if (!element || element.innerHTML) {
+            continue;
+        }
+        element.innerHTML = makeVideoHTML(videos[i].video, !!videos[i].duration);
 
+        videos[i].startTime = null;
+        videos[i].currentBlur = maxBlur;
+    }
 }
 
 function animateBlur(timestamp) {
     try {
         for (var i = 0; i < videos.length; i++) {
-            const iframe = document.getElementById(`video-${i}`)
-            if (!videos[i].startTime) videos[i].startTime = timestamp;
-            if (!animationRunning) {
-                if (videos[i].duration >= 0) {
-                    videos[i].startTime = timestamp - ((maxBlur - videos[i].currentBlur) / maxBlur) * videos[i].duration; // Pause korrekt offsetten
-                }
+            const iframe = document.getElementById(`video-${i}`);
+            if (!iframe) {
                 continue;
             }
+            if (!videos[i].startTime) videos[i].startTime = timestamp;
 
             if (videos[i].duration == 0) {
                 videos[i].currentBlur = 0;
