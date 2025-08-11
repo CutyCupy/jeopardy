@@ -1,23 +1,12 @@
-import { registerBoard } from "./board.js";
-import { registerGamemaster } from "./gamemaster.js";
-import { registerLobby } from "./lobby.js";
-import { registerQuestion } from "./question.js";
 import { connect, registerSubscription } from "./websocket.js";
 
-
-registerBoard();
-registerGamemaster();
-registerLobby();
-registerQuestion();
-
-registerSubscription((client) => {
-    client.subscribe("/user/queue/errors", (msg) => {
-        showAlert('danger', msg.body);
+export function registerMain() {
+    registerSubscription((client) => {
+        client.subscribe("/user/queue/errors", (msg) => {
+            showAlert('danger', msg.body);
+        })
     })
-})
-
-connect();
-
+}
 
 const alertPlaceholder = document.getElementById('alert');
 

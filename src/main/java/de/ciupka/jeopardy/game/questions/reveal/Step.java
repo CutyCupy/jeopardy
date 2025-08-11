@@ -19,6 +19,10 @@ public class Step {
         return content;
     }
 
+    public void setContent(Object content) {
+        this.content = content;
+    }
+
     public boolean isRevealed() {
         return revealed;
     }

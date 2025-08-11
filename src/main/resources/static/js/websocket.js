@@ -10,7 +10,6 @@ export function registerSubscription(fn) {
 
 
 export function connect() {
-
     registerSubscription((client) => {
         client.subscribe("/user/topic/on-connect", (msg) => {
             var letters = [];
@@ -27,7 +26,6 @@ export function connect() {
 
         })
         client.send('/app/on-connect');
-
     })
 
     // ngrok http --host-header=localhost 8080

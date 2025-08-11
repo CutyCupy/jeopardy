@@ -6,24 +6,33 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import de.ciupka.jeopardy.game.Category;
+import de.ciupka.jeopardy.configs.Views;
 import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.answer.Answer;
 import de.ciupka.jeopardy.game.questions.answer.SortOption;
 import de.ciupka.jeopardy.game.questions.answer.SortOptions;
+import de.ciupka.jeopardy.game.questions.answer.Tool;
 import de.ciupka.jeopardy.game.questions.reveal.GroupType;
 import de.ciupka.jeopardy.game.questions.reveal.Step;
 import de.ciupka.jeopardy.game.questions.reveal.StepType;
 
 public class SortQuestion extends AbstractQuestion<SortOptions> implements Evaluatable<SortOption[]> {
 
+    @JsonView(Views.WebSocket.class)
     private String[] options;
 
-    public SortQuestion(Category category, String question, int points, SortOptions answer) {
-        super(category, question, points, answer, Type.SORT);
+    @JsonCreator
+    public SortQuestion(@JsonProperty("question") String question,
+            @JsonProperty("points") int points,
+            @JsonProperty("answer") SortOptions answer,
+            @JsonProperty("descending") boolean descending) {
+        super(question, points, answer.asSortedList(descending), Type.SORT, Tool.SORT);
 
         List<String> optionList = Arrays.stream(answer.getOptions())
                 .map(SortOption::getName)
@@ -36,6 +45,9 @@ public class SortQuestion extends AbstractQuestion<SortOptions> implements Evalu
                 .addStep(new Step(
                         StepType.TEXT,
                         answer.toString()));
+        getGroups().get(GroupType.METADATA)
+                .addStep(new Step(StepType.TEXT,
+                        String.format("In %s Reihenfolge!", descending ? "absteigender" : "aufsteigender")));
     }
 
     @Override

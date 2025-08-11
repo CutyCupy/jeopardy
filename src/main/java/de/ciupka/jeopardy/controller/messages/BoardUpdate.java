@@ -16,11 +16,11 @@ public class BoardUpdate {
 
     public BoardUpdate(GameService game, Player player) {
 
-        Category[] board = game.getBoard();
+        List<Category> board = game.getBoard();
 
-        this.categories = new CategoryUpdate[board.length];
-        for (int i = 0; i < board.length; i++) {
-            this.categories[i] = new CategoryUpdate(board[i], i, player);
+        this.categories = new CategoryUpdate[board.size()];
+        for (int i = 0; i < board.size(); i++) {
+            this.categories[i] = new CategoryUpdate(board.get(i), i, player);
         }
 
         this.selected = game.getSelectedQuestionIdentifier();
@@ -43,7 +43,7 @@ public class BoardUpdate {
 
         public CategoryUpdate(Category cat, int idx, Player player) {
             this.title = cat.getName();
-            this.color = cat.getColorCode();
+            this.color = cat.getColor();
 
             List<AbstractQuestion<?>> questions = cat.getQuestions();
 

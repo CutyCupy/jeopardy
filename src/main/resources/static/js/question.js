@@ -174,8 +174,8 @@ export function registerQuestion() {
                 board.style.display = 'none';
             }
             if (metadataGrp.complete) {
-                switch (update.question.type.name) {
-                    case 'NORMAL':
+                switch (update.question.answerTool) {
+                    case 'BUZZER':
                         buzzer.style.display = null;
                         break;
                     case 'TEXT':
@@ -186,21 +186,13 @@ export function registerQuestion() {
                         answerText.style.display = null;
                         submitButton.style.display = null;
                         break;
-                    case 'ESTIMATE':
+                    case 'NUMBER':
                         updateSubmitButton(() => {
                             submitAnswer(answerNumber.value);
                         });
 
 
                         answerNumber.style.display = null;
-                        submitButton.style.display = null;
-                        break;
-                    case 'VIDEO':
-                        updateSubmitButton(() => {
-                            submitAnswer(answerText.value);
-                        });
-
-                        answerText.style.display = null;
                         submitButton.style.display = null;
                         break;
                     case 'SORT':
