@@ -338,6 +338,12 @@ function onTypeChange() {
             answerVideo.id = "answerVideo";
             addOnlyStreamableCheck(answerVideo);
 
+            const blurField = document.createElement('input')
+            blurField.id = "blurDuration";
+            blurField.type = 'number';
+
+            questionFields.appendChild(blurField);
+
             questionFields.appendChild(asFormGroupItem(answerVideo, "Antwort-Video"));
             const answerField = document.createElement('textarea');
             answerField.id = "answer";

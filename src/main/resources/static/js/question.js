@@ -63,7 +63,8 @@ function makeStep(step) {
             break;
         case "VIDEO":
             blueprint = document.createElement('div');
-            blueprint.innerHTML = makeVideoHTML(step.content);
+            blueprint.innerHTML = makeVideoHTML(step.content.video, !!step.content.blurDuration);
+            addVideoBlur(blueprint, step.content);
             break;
         case "AUDIO":
             break;
@@ -288,21 +289,24 @@ export function registerQuestion() {
         }
 
         function onAnswerUpdate(msg) {
-            var answers = JSON.parse(msg.body);
+            var update = JSON.parse(msg.body);
 
+            if (animationRunning) {
+                animationRunning = update.tool != 'BUZZER' || !update.answers.find((v) => v.correct == null);
+            }
 
-            const enabled = !answers.find((v) => v.player.id == myID);
+            const enabled = !update.answers.find((v) => v.player.id == myID);
 
             Array.from(questionAnswerToolWrapper.children).forEach((v) => {
                 v.disabled = !enabled;
             });
 
-            if (!answers.length) {
+            if (!update.answers.length) {
                 questionAnswers.replaceChildren();
                 return;
             }
 
-            for (var answer of answers) {
+            for (var answer of update.answers) {
                 const rowID = `row:${answer.player.name}`;
                 const nameID = `name:${answer.player.name}`;
                 const answerID = `answer:${answer.player.name}`;
@@ -419,6 +423,8 @@ export function registerQuestion() {
         })
 
         resetQuestion();
+
+        requestAnimationFrame(animateBlur);
     });
 
 }
@@ -491,14 +497,71 @@ function dropHandler(ev) {
 }
 
 
-function makeVideoHTML(src) {
-    return src ? `<div style="position:relative; width:100%; height:0px; padding-bottom:56.250%">
+function makeVideoHTML(src, disableLoop) {
+    return src ? `<div style="position:relative; width:100%; height:0px; padding-bottom:56.250%; pointer-events: none">
                 <iframe allow="fullscreen;autoplay" allowfullscreen height="100%" 
-                src="https://streamable.com/e/${src}?autoplay=1" width="100%" 
+                src="https://streamable.com/e/${src}?autoplay=1&loop=${disableLoop ? 0 : 1}&controls=0&showcontrols=0" width="100%" 
                 style="border:none; width:100%; height:100%; position:absolute; left:0px; top:0px; overflow:hidden;">
                 </iframe>
             </div>` : null;
 }
+
+
+let maxBlur = 10;
+let animationRunning = true;
+
+let videos = [];
+
+
+function addVideoBlur(element, data) {
+    element.id = `video-${videos.length}`
+    videos.push({
+        currentBlur: maxBlur,
+        duration: data.blurDuration * 1000,
+        video: data.video,
+    });
+}
+
+// TODO: OnAnswerUpdate
+function stopVideoBlur(video) {
+
+
+}
+
+// TODO: OnAnswerUpdate
+function restartVideoBlurred(video) {
+
+}
+
+function animateBlur(timestamp) {
+    try {
+        for (var i = 0; i < videos.length; i++) {
+            const iframe = document.getElementById(`video-${i}`)
+            if (!videos[i].startTime) videos[i].startTime = timestamp;
+            if (!animationRunning) {
+                if (videos[i].duration >= 0) {
+                    videos[i].startTime = timestamp - ((maxBlur - videos[i].currentBlur) / maxBlur) * videos[i].duration; // Pause korrekt offsetten
+                }
+                continue;
+            }
+
+            if (videos[i].duration == 0) {
+                videos[i].currentBlur = 0;
+            } else if (videos[i].duration < 0) {
+                videos[i].currentBlur = maxBlur;
+            } else {
+                let elapsed = timestamp - videos[i].startTime;
+                videos[i].currentBlur = Math.max(maxBlur - (elapsed / videos[i].duration) * maxBlur, 0);
+            }
+            iframe.style.filter = `blur(${videos[i].currentBlur.toFixed(2)}px)`;
+        }
+    } catch (e) {
+        console.log(e);
+    }
+
+    requestAnimationFrame(animateBlur);
+}
+
 
 export function makeIcon(name) {
     var icon = document.createElement("i");
