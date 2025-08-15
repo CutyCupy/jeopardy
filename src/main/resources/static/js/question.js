@@ -62,8 +62,7 @@ function makeStep(step) {
         case "IMAGE":
             break;
         case "VIDEO":
-            blueprint = document.createElement('div');
-            blueprint.innerHTML = makeVideoHTML(step.content);
+            blueprint = addVideoBlur(step.content);
             break;
         case "AUDIO":
             break;
@@ -81,6 +80,7 @@ export function registerQuestion() {
             if (!update.question) {
                 resetQuestion();
                 board.style.display = null;
+                videos = [];
                 return;
             }
             hideAnswer();
@@ -288,21 +288,26 @@ export function registerQuestion() {
         }
 
         function onAnswerUpdate(msg) {
-            var answers = JSON.parse(msg.body);
+            var update = JSON.parse(msg.body);
 
+            if (update.tool == 'BUZZER' && update.answers.find((v) => v.correct == null)) {
+                stopVideoBlur();
+            } else {
+                restartVideoBlur();
+            }
 
-            const enabled = !answers.find((v) => v.player.id == myID);
+            const enabled = !update.answers.find((v) => v.player.id == myID);
 
             Array.from(questionAnswerToolWrapper.children).forEach((v) => {
                 v.disabled = !enabled;
             });
 
-            if (!answers.length) {
+            if (!update.answers.length) {
                 questionAnswers.replaceChildren();
                 return;
             }
 
-            for (var answer of answers) {
+            for (var answer of update.answers) {
                 const rowID = `row:${answer.player.name}`;
                 const nameID = `name:${answer.player.name}`;
                 const answerID = `answer:${answer.player.name}`;
@@ -329,7 +334,7 @@ export function registerQuestion() {
                 nameCell.id = nameID
                 nameCell.innerText = answer.player.name;
 
-                if (answers.find((v) => !!v.answer)) {
+                if (update.answers.find((v) => !!v.answer)) {
                     var answerCell = document.getElementById(answerID) || row.insertCell(1);
                     answerCell.id = answerID;
                     answerCell.innerText = answer.answer;
@@ -419,6 +424,8 @@ export function registerQuestion() {
         })
 
         resetQuestion();
+
+        requestAnimationFrame(animateBlur);
     });
 
 }
@@ -491,14 +498,85 @@ function dropHandler(ev) {
 }
 
 
-function makeVideoHTML(src) {
-    return src ? `<div style="position:relative; width:100%; height:0px; padding-bottom:56.250%">
-                <iframe allow="fullscreen;autoplay" allowfullscreen height="100%" 
-                src="https://streamable.com/e/${src}?autoplay=1" width="100%" 
+function makeVideoHTML(src, disableLoop) {
+    return src ? `<div style="position:relative; width:100%; height:0px; padding-bottom:56.250%; pointer-events: ${isGameMaster ? 'inherits' : 'none'}">
+                <iframe allow="fullscreen${isGameMaster ? '' : ';autoplay'}" allowfullscreen height="100%" 
+                src="https://streamable.com/e/${src}?autoplay=${isGameMaster ? 0 : 1}&loop=${disableLoop ? 0 : 1}&controls=0&showcontrols=0" width="100%" 
                 style="border:none; width:100%; height:100%; position:absolute; left:0px; top:0px; overflow:hidden;">
                 </iframe>
             </div>` : null;
 }
+
+
+let maxBlur = 10;
+
+let videos = [];
+
+
+function addVideoBlur(data) {
+    const element = document.createElement('div');
+    element.id = `video-${videos.length}`
+    element.innerHTML = makeVideoHTML(data.video, !!data.blurDuration);
+    videos.push({
+        currentBlur: maxBlur,
+        duration: data.blurDuration,
+        video: data.video,
+    });
+
+    return element;
+}
+
+// TODO: OnAnswerUpdate
+function stopVideoBlur() {
+    for (var i = 0; i < videos.length; i++) {
+        const element = document.getElementById(`video-${i}`);
+        if (!element) {
+            continue;
+        }
+        element.innerHTML = "";
+    }
+}
+
+// TODO: OnAnswerUpdate
+function restartVideoBlur() {
+    for (var i = 0; i < videos.length; i++) {
+        const element = document.getElementById(`video-${i}`);
+        if (!element || element.innerHTML) {
+            continue;
+        }
+        element.innerHTML = makeVideoHTML(videos[i].video, !!videos[i].duration);
+
+        videos[i].startTime = null;
+        videos[i].currentBlur = maxBlur;
+    }
+}
+
+function animateBlur(timestamp) {
+    try {
+        for (var i = 0; i < videos.length; i++) {
+            const iframe = document.getElementById(`video-${i}`);
+            if (!iframe) {
+                continue;
+            }
+            if (!videos[i].startTime) videos[i].startTime = timestamp;
+
+            if (videos[i].duration == 0) {
+                videos[i].currentBlur = 0;
+            } else if (videos[i].duration < 0) {
+                videos[i].currentBlur = maxBlur;
+            } else {
+                let elapsed = timestamp - videos[i].startTime;
+                videos[i].currentBlur = Math.max(maxBlur - (elapsed / videos[i].duration) * maxBlur, 0);
+            }
+            iframe.style.filter = `blur(${videos[i].currentBlur.toFixed(2)}px)`;
+        }
+    } catch (e) {
+        console.log(e);
+    }
+
+    requestAnimationFrame(animateBlur);
+}
+
 
 export function makeIcon(name) {
     var icon = document.createElement("i");

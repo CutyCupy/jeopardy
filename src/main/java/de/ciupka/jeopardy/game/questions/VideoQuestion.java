@@ -21,22 +21,27 @@ public class VideoQuestion extends AbstractQuestion<String> {
     @JsonView(Views.Common.class)
     private final String answerVideo;
 
+    @JsonView(Views.Common.class)
+    private final double blurDuration;
+
     @JsonCreator
     public VideoQuestion(@JsonProperty("question") String question,
             @JsonProperty("points") int points,
             @JsonProperty("answer") String answer,
             @JsonProperty("answerVideo") String answerVideo,
             @JsonProperty("questionVideo") String questionVideo,
+            @JsonProperty("blurDuration") double blurDuration,
             @JsonProperty("answerTool") Tool answerTool) {
         super(question, points, answer, Type.VIDEO, answerTool);
         this.questionVideo = questionVideo;
         this.answerVideo = answerVideo;
+        this.blurDuration = blurDuration;
 
         getGroups().get(GroupType.QUESTION)
-                .addStep(new Step(StepType.VIDEO, questionVideo));
+                .addStep(new Step(StepType.VIDEO, new Step.VideoData(questionVideo, blurDuration)));
 
         getGroups().get(GroupType.ANSWER)
-                .addStep(new Step(StepType.VIDEO, answerVideo));
+                .addStep(new Step(StepType.VIDEO, new Step.VideoData(answerVideo, 0)));
     }
 
     public String getQuestionVideo() {
@@ -45,6 +50,10 @@ public class VideoQuestion extends AbstractQuestion<String> {
 
     public String getAnswerVideo() {
         return answerVideo;
+    }
+
+    public double getBlurDuration() {
+        return blurDuration;
     }
 
     @Override

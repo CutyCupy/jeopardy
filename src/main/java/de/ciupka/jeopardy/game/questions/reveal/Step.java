@@ -31,4 +31,23 @@ public class Step {
         this.revealed = revealed;
     }
 
+    public static class VideoData {
+        private String video;
+        private double blurDuration;
+
+        public VideoData(String video, double blurDuration) {
+            this.video = video;
+            this.blurDuration = blurDuration;
+        }
+
+        public String getVideo() {
+            return video;
+        }
+
+        public double getBlurDuration() {
+            return blurDuration;
+        }
+
+    }
+
 }

@@ -338,6 +338,12 @@ function onTypeChange() {
             answerVideo.id = "answerVideo";
             addOnlyStreamableCheck(answerVideo);
 
+            const blurField = document.createElement('input')
+            blurField.id = "blurDuration";
+            blurField.type = 'number';
+
+            questionFields.appendChild(asFormGroupItem(blurField, "Blur in ms"));
+
             questionFields.appendChild(asFormGroupItem(answerVideo, "Antwort-Video"));
             const answerField = document.createElement('textarea');
             answerField.id = "answer";
@@ -446,7 +452,7 @@ function insertHint(hint) {
 
 
     const wrapper = document.createElement('div');
-    wrapper.id = `option-${hintsDiv.children.length - 1}`;
+    wrapper.id = `hint-${hintsDiv.children.length - 1}`;
     wrapper.classList.add("row");
 
     const hintEle = document.createElement('input');
@@ -459,7 +465,7 @@ function insertHint(hint) {
     remove.classList.add("btn", "btn-danger");
     remove.classList.add("col");
     remove.onclick = () => {
-        hintsDiv.removeChild(hintEle);
+        hintsDiv.removeChild(wrapper);
         onHintChange();
     }
 
