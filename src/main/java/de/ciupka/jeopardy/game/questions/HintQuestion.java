@@ -31,6 +31,8 @@ public class HintQuestion extends AbstractQuestion<String> {
         for (String hint : hints) {
             this.getGroups().get(GroupType.HINT).addStep(new Step(StepType.TEXT, hint));
         }
+
+        this.getGroups().get(GroupType.ANSWER).addStep(new Step(StepType.TEXT, answer));
     }
 
     @Override

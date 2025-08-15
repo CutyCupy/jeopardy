@@ -498,10 +498,10 @@ function dropHandler(ev) {
 }
 
 
-function makeVideoHTML(src, disableLoop) {
+function makeVideoHTML(src) {
     return src ? `<div style="position:relative; width:100%; height:0px; padding-bottom:56.250%; pointer-events: ${isGameMaster ? 'inherits' : 'none'}">
                 <iframe allow="fullscreen${isGameMaster ? '' : ';autoplay'}" allowfullscreen height="100%" 
-                src="https://streamable.com/e/${src}?autoplay=${isGameMaster ? 0 : 1}&loop=${disableLoop ? 0 : 1}&controls=0&showcontrols=0" width="100%" 
+                src="https://streamable.com/e/${src}?autoplay=${isGameMaster ? 0 : 1}&loop=0&controls=0&showcontrols=0" width="100%" 
                 style="border:none; width:100%; height:100%; position:absolute; left:0px; top:0px; overflow:hidden;">
                 </iframe>
             </div>` : null;
@@ -516,7 +516,7 @@ let videos = [];
 function addVideoBlur(data) {
     const element = document.createElement('div');
     element.id = `video-${videos.length}`
-    element.innerHTML = makeVideoHTML(data.video, !!data.blurDuration);
+    element.innerHTML = makeVideoHTML(data.video);
     videos.push({
         currentBlur: maxBlur,
         duration: data.blurDuration,
@@ -544,7 +544,7 @@ function restartVideoBlur() {
         if (!element || element.innerHTML) {
             continue;
         }
-        element.innerHTML = makeVideoHTML(videos[i].video, !!videos[i].duration);
+        element.innerHTML = makeVideoHTML(videos[i].video);
 
         videos[i].startTime = null;
         videos[i].currentBlur = maxBlur;
