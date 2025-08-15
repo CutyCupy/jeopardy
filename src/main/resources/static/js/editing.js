@@ -452,7 +452,7 @@ function insertHint(hint) {
 
 
     const wrapper = document.createElement('div');
-    wrapper.id = `option-${hintsDiv.children.length - 1}`;
+    wrapper.id = `hint-${hintsDiv.children.length - 1}`;
     wrapper.classList.add("row");
 
     const hintEle = document.createElement('input');
@@ -465,7 +465,7 @@ function insertHint(hint) {
     remove.classList.add("btn", "btn-danger");
     remove.classList.add("col");
     remove.onclick = () => {
-        hintsDiv.removeChild(hintEle);
+        hintsDiv.removeChild(wrapper);
         onHintChange();
     }
 

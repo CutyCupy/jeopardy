@@ -500,8 +500,8 @@ function dropHandler(ev) {
 
 function makeVideoHTML(src, disableLoop) {
     return src ? `<div style="position:relative; width:100%; height:0px; padding-bottom:56.250%; pointer-events: ${isGameMaster ? 'inherits' : 'none'}">
-                <iframe allow="fullscreen;autoplay" allowfullscreen height="100%" 
-                src="https://streamable.com/e/${src}?autoplay=1&loop=${disableLoop ? 0 : 1}&controls=0&showcontrols=0" width="100%" 
+                <iframe allow="fullscreen${isGameMaster ? '' : ';autoplay'}" allowfullscreen height="100%" 
+                src="https://streamable.com/e/${src}?autoplay=${isGameMaster ? 0 : 1}&loop=${disableLoop ? 0 : 1}&controls=0&showcontrols=0" width="100%" 
                 style="border:none; width:100%; height:100%; position:absolute; left:0px; top:0px; overflow:hidden;">
                 </iframe>
             </div>` : null;
