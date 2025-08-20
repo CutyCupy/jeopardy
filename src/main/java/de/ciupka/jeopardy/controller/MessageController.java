@@ -41,6 +41,7 @@ import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 import de.ciupka.jeopardy.game.questions.Evaluatable;
 import de.ciupka.jeopardy.game.questions.Type;
 import de.ciupka.jeopardy.game.questions.answer.Answer;
+import de.ciupka.jeopardy.game.questions.answer.Tool;
 import de.ciupka.jeopardy.services.NotificationService;
 
 /**
@@ -135,7 +136,7 @@ public class MessageController {
         question.addAnswer(answering, answer.getAnswer());
 
         // TODO: This can be checked better
-        if (question.getType().equals(Type.NORMAL)) {
+        if (question.getAnswerTool().equals(Tool.BUZZER)) {
             this.notifications.sendOnBuzzer();
         }
 

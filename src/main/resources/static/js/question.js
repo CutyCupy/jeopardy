@@ -102,7 +102,7 @@ export function registerQuestion() {
                 return button;
             }
 
-            const makeRevealButton = (more, child) => {
+            const makeRevealButton = (more) => {
 
                 var typ = more ? 'reveal' : 'hide';
 
@@ -111,34 +111,47 @@ export function registerQuestion() {
                 button.replaceChildren(makeIcon(`${more ? 'eye' : 'eye-slash'}`));
                 button.addEventListener('click', () => reveal(more));
 
-
-                var wrapper = document.createElement("div");
-                wrapper.classList.add(`${typ}-wrapper`);
-                wrapper.append(button, child);
-
-                return wrapper;
+                return button;
             }
+
+            const groups = [{ grp: metadataGrp, div: metadataDiv }, { grp: questionGrp, div: questionDiv }, { grp: hintGrp, div: hintDiv }, { grp: answerGrp, div: answerDiv }];
 
             var lastRevealed = true;
             var lastElement;
-            for (var grp of [{ grp: metadataGrp, div: metadataDiv }, { grp: questionGrp, div: questionDiv }, { grp: hintGrp, div: hintDiv }, { grp: answerGrp, div: answerDiv }]) {
-                grp.div.replaceChildren();
-                for (var step of grp.grp.steps) {
+            for (var i = 0; i < groups.length; i++) {
+                const grp = groups[i];
+                const buttons = grp.div.querySelectorAll("button");
+                for (const button of buttons) {
+                    button.remove();
+                }
+                if (grp.div.question != update.question.id) {
+                    grp.div.replaceChildren();
+                    grp.div.question = update.question.id;
+                }
+                for (var j = 0; j < grp.grp.steps.length; j++) {
+                    const step = grp.grp.steps[j];
+
+                    const existing = Array.from(grp.div.getElementsByTagName("*")).find((v) => v.step == j);
+
                     if (step.revealed || isGameMaster) {
-                        var child = makeStep(step);
+                        var child = existing || makeStep(step);
+                        child.step = j;
+                        if (!existing) {
+                            grp.div.appendChild(child);
+                        }
                         if (!step.revealed && lastRevealed) {
-                            child = makeRevealButton(true, child);
 
                             if (lastElement) {
                                 var parent = lastElement.parentNode;
 
-                                lastElement.remove();
-
-                                parent.appendChild(makeRevealButton(false, lastElement));
+                                parent.insertBefore(makeRevealButton(false), lastElement);
                             }
+
+                            grp.div.insertBefore(makeRevealButton(true), child);
                         }
                         lastElement = child;
-                        grp.div.appendChild(child);
+                    } else if (existing && !isGameMaster) {
+                        grp.div.removeChild(existing);
                     }
                     lastRevealed = step.revealed;
                 }
@@ -159,9 +172,7 @@ export function registerQuestion() {
                 if (lastRevealed && lastElement) {
                     var parent = lastElement.parentNode;
 
-                    lastElement.remove();
-
-                    parent.appendChild(makeRevealButton(false, lastElement));
+                    parent.appendChild(makeRevealButton(false), lastElement);
                 }
             } else {
                 questionAnswerToolWrapper.style.display = null;
@@ -234,6 +245,10 @@ export function registerQuestion() {
 
                 Array.from(questionAnswerToolWrapper.children).forEach((v) => {
                     v.disabled = true;
+
+                    for (var child of answerSort.children) {
+                        child.draggable = false;
+                    }
                 });
 
                 questionAnswerToolWrapper.style.display = 'none';
@@ -300,6 +315,10 @@ export function registerQuestion() {
 
             Array.from(questionAnswerToolWrapper.children).forEach((v) => {
                 v.disabled = !enabled;
+
+                for (var child of answerSort.children) {
+                    child.draggable = enabled;
+                }
             });
 
             if (!update.answers.length) {
