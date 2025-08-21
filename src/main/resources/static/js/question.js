@@ -62,8 +62,7 @@ function makeStep(step) {
         case "IMAGE":
             break;
         case "VIDEO":
-            blueprint = document.createElement('div');
-            blueprint.innerHTML = makeVideoHTML(step.content);
+            blueprint = addVideoBlur(step.content);
             break;
         case "AUDIO":
             break;
@@ -81,6 +80,7 @@ export function registerQuestion() {
             if (!update.question) {
                 resetQuestion();
                 board.style.display = null;
+                videos = [];
                 return;
             }
             hideAnswer();
@@ -102,7 +102,7 @@ export function registerQuestion() {
                 return button;
             }
 
-            const makeRevealButton = (more, child) => {
+            const makeRevealButton = (more) => {
 
                 var typ = more ? 'reveal' : 'hide';
 
@@ -111,34 +111,47 @@ export function registerQuestion() {
                 button.replaceChildren(makeIcon(`${more ? 'eye' : 'eye-slash'}`));
                 button.addEventListener('click', () => reveal(more));
 
-
-                var wrapper = document.createElement("div");
-                wrapper.classList.add(`${typ}-wrapper`);
-                wrapper.append(button, child);
-
-                return wrapper;
+                return button;
             }
+
+            const groups = [{ grp: metadataGrp, div: metadataDiv }, { grp: questionGrp, div: questionDiv }, { grp: hintGrp, div: hintDiv }, { grp: answerGrp, div: answerDiv }];
 
             var lastRevealed = true;
             var lastElement;
-            for (var grp of [{ grp: metadataGrp, div: metadataDiv }, { grp: questionGrp, div: questionDiv }, { grp: hintGrp, div: hintDiv }, { grp: answerGrp, div: answerDiv }]) {
-                grp.div.replaceChildren();
-                for (var step of grp.grp.steps) {
+            for (var i = 0; i < groups.length; i++) {
+                const grp = groups[i];
+                const buttons = grp.div.querySelectorAll("button");
+                for (const button of buttons) {
+                    button.remove();
+                }
+                if (grp.div.question != update.question.id) {
+                    grp.div.replaceChildren();
+                    grp.div.question = update.question.id;
+                }
+                for (var j = 0; j < grp.grp.steps.length; j++) {
+                    const step = grp.grp.steps[j];
+
+                    const existing = Array.from(grp.div.getElementsByTagName("*")).find((v) => v.step == j);
+
                     if (step.revealed || isGameMaster) {
-                        var child = makeStep(step);
+                        var child = existing || makeStep(step);
+                        child.step = j;
+                        if (!existing) {
+                            grp.div.appendChild(child);
+                        }
                         if (!step.revealed && lastRevealed) {
-                            child = makeRevealButton(true, child);
 
                             if (lastElement) {
                                 var parent = lastElement.parentNode;
 
-                                lastElement.remove();
-
-                                parent.appendChild(makeRevealButton(false, lastElement));
+                                parent.insertBefore(makeRevealButton(false), lastElement);
                             }
+
+                            grp.div.insertBefore(makeRevealButton(true), child);
                         }
                         lastElement = child;
-                        grp.div.appendChild(child);
+                    } else if (existing && !isGameMaster) {
+                        grp.div.removeChild(existing);
                     }
                     lastRevealed = step.revealed;
                 }
@@ -159,9 +172,7 @@ export function registerQuestion() {
                 if (lastRevealed && lastElement) {
                     var parent = lastElement.parentNode;
 
-                    lastElement.remove();
-
-                    parent.appendChild(makeRevealButton(false, lastElement));
+                    parent.appendChild(makeRevealButton(false), lastElement);
                 }
             } else {
                 questionAnswerToolWrapper.style.display = null;
@@ -174,8 +185,8 @@ export function registerQuestion() {
                 board.style.display = 'none';
             }
             if (metadataGrp.complete) {
-                switch (update.question.type.name) {
-                    case 'NORMAL':
+                switch (update.question.answerTool) {
+                    case 'BUZZER':
                         buzzer.style.display = null;
                         break;
                     case 'TEXT':
@@ -186,21 +197,13 @@ export function registerQuestion() {
                         answerText.style.display = null;
                         submitButton.style.display = null;
                         break;
-                    case 'ESTIMATE':
+                    case 'NUMBER':
                         updateSubmitButton(() => {
                             submitAnswer(answerNumber.value);
                         });
 
 
                         answerNumber.style.display = null;
-                        submitButton.style.display = null;
-                        break;
-                    case 'VIDEO':
-                        updateSubmitButton(() => {
-                            submitAnswer(answerText.value);
-                        });
-
-                        answerText.style.display = null;
                         submitButton.style.display = null;
                         break;
                     case 'SORT':
@@ -242,6 +245,10 @@ export function registerQuestion() {
 
                 Array.from(questionAnswerToolWrapper.children).forEach((v) => {
                     v.disabled = true;
+
+                    for (var child of answerSort.children) {
+                        child.draggable = false;
+                    }
                 });
 
                 questionAnswerToolWrapper.style.display = 'none';
@@ -296,21 +303,30 @@ export function registerQuestion() {
         }
 
         function onAnswerUpdate(msg) {
-            var answers = JSON.parse(msg.body);
+            var update = JSON.parse(msg.body);
 
+            if (update.tool == 'BUZZER' && update.answers.find((v) => v.correct == null)) {
+                stopVideoBlur();
+            } else {
+                restartVideoBlur();
+            }
 
-            const enabled = !answers.find((v) => v.player.id == myID);
+            const enabled = !update.answers.find((v) => v.player.id == myID);
 
             Array.from(questionAnswerToolWrapper.children).forEach((v) => {
                 v.disabled = !enabled;
+
+                for (var child of answerSort.children) {
+                    child.draggable = enabled;
+                }
             });
 
-            if (!answers.length) {
+            if (!update.answers.length) {
                 questionAnswers.replaceChildren();
                 return;
             }
 
-            for (var answer of answers) {
+            for (var answer of update.answers) {
                 const rowID = `row:${answer.player.name}`;
                 const nameID = `name:${answer.player.name}`;
                 const answerID = `answer:${answer.player.name}`;
@@ -337,7 +353,7 @@ export function registerQuestion() {
                 nameCell.id = nameID
                 nameCell.innerText = answer.player.name;
 
-                if (answers.find((v) => !!v.answer)) {
+                if (update.answers.find((v) => !!v.answer)) {
                     var answerCell = document.getElementById(answerID) || row.insertCell(1);
                     answerCell.id = answerID;
                     answerCell.innerText = answer.answer;
@@ -427,6 +443,8 @@ export function registerQuestion() {
         })
 
         resetQuestion();
+
+        requestAnimationFrame(animateBlur);
     });
 
 }
@@ -500,13 +518,84 @@ function dropHandler(ev) {
 
 
 function makeVideoHTML(src) {
-    return src ? `<div style="position:relative; width:100%; height:0px; padding-bottom:56.250%">
-                <iframe allow="fullscreen;autoplay" allowfullscreen height="100%" 
-                src="https://streamable.com/e/${src}?autoplay=1" width="100%" 
+    return src ? `<div style="position:relative; width:100%; height:0px; padding-bottom:56.250%; pointer-events: ${isGameMaster ? 'inherits' : 'none'}">
+                <iframe allow="fullscreen${isGameMaster ? '' : ';autoplay'}" allowfullscreen height="100%" 
+                src="https://streamable.com/e/${src}?autoplay=${isGameMaster ? 0 : 1}&loop=0&controls=0&showcontrols=0" width="100%" 
                 style="border:none; width:100%; height:100%; position:absolute; left:0px; top:0px; overflow:hidden;">
                 </iframe>
             </div>` : null;
 }
+
+
+let maxBlur = 10;
+
+let videos = [];
+
+
+function addVideoBlur(data) {
+    const element = document.createElement('div');
+    element.id = `video-${videos.length}`
+    element.innerHTML = makeVideoHTML(data.video);
+    videos.push({
+        currentBlur: maxBlur,
+        duration: data.blurDuration,
+        video: data.video,
+    });
+
+    return element;
+}
+
+// TODO: OnAnswerUpdate
+function stopVideoBlur() {
+    for (var i = 0; i < videos.length; i++) {
+        const element = document.getElementById(`video-${i}`);
+        if (!element) {
+            continue;
+        }
+        element.innerHTML = "";
+    }
+}
+
+// TODO: OnAnswerUpdate
+function restartVideoBlur() {
+    for (var i = 0; i < videos.length; i++) {
+        const element = document.getElementById(`video-${i}`);
+        if (!element || element.innerHTML) {
+            continue;
+        }
+        element.innerHTML = makeVideoHTML(videos[i].video);
+
+        videos[i].startTime = null;
+        videos[i].currentBlur = maxBlur;
+    }
+}
+
+function animateBlur(timestamp) {
+    try {
+        for (var i = 0; i < videos.length; i++) {
+            const iframe = document.getElementById(`video-${i}`);
+            if (!iframe) {
+                continue;
+            }
+            if (!videos[i].startTime) videos[i].startTime = timestamp;
+
+            if (videos[i].duration == 0) {
+                videos[i].currentBlur = 0;
+            } else if (videos[i].duration < 0) {
+                videos[i].currentBlur = maxBlur;
+            } else {
+                let elapsed = timestamp - videos[i].startTime;
+                videos[i].currentBlur = Math.max(maxBlur - (elapsed / videos[i].duration) * maxBlur, 0);
+            }
+            iframe.style.filter = `blur(${videos[i].currentBlur.toFixed(2)}px)`;
+        }
+    } catch (e) {
+        console.log(e);
+    }
+
+    requestAnimationFrame(animateBlur);
+}
+
 
 export function makeIcon(name) {
     var icon = document.createElement("i");

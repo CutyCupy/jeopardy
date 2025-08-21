@@ -6,50 +6,80 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import de.ciupka.jeopardy.configs.Views;
 import de.ciupka.jeopardy.exception.AnswerNotFoundException;
 import de.ciupka.jeopardy.exception.RevealException;
 import de.ciupka.jeopardy.game.Category;
 import de.ciupka.jeopardy.game.Player;
 import de.ciupka.jeopardy.game.questions.answer.Answer;
+import de.ciupka.jeopardy.game.questions.answer.Tool;
 import de.ciupka.jeopardy.game.questions.reveal.Group;
 import de.ciupka.jeopardy.game.questions.reveal.GroupType;
 import de.ciupka.jeopardy.game.questions.reveal.Step;
 import de.ciupka.jeopardy.game.questions.reveal.StepType;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = EstimateQuestion.class, name = "ESTIMATE"),
+        @JsonSubTypes.Type(value = Question.class, name = "NORMAL"),
+        @JsonSubTypes.Type(value = SortQuestion.class, name = "SORT"),
+        @JsonSubTypes.Type(value = VideoQuestion.class, name = "VIDEO"),
+        @JsonSubTypes.Type(value = HintQuestion.class, name = "HINT")
+})
 public abstract class AbstractQuestion<T> {
 
+    @JsonIgnore
     private final Type type;
+    @JsonView(Views.Common.class)
     private final int points;
+    @JsonView(Views.Common.class)
     private final T answer;
+    @JsonView(Views.Common.class)
+    private final String question;
+    @JsonView(Views.Common.class)
+    private final Tool answerTool;
 
+    @JsonView(Views.WebSocket.class)
     private boolean locked;
 
     @JsonIgnore
-    private final Category category;
+    private Category category;
 
+    @JsonView(Views.WebSocket.class)
     private final Map<GroupType, Group> groups = new EnumMap<>(GroupType.class);
 
     @JsonIgnore
     private final List<Answer<T>> answers = new ArrayList<>();
 
-    public AbstractQuestion(Category category, String questionText, int points, T answer, Type type) {
-        this.category = category;
+    public AbstractQuestion(String question, int points, T answer, Type type, Tool answerTool) {
         this.points = points;
         this.answer = answer;
         this.type = type;
+        this.question = question;
+        this.answerTool = answerTool;
 
-        initDefaultGroups(questionText);
+        initDefaultGroups();
     }
 
-    private void initDefaultGroups(String questionText) {
+    public void setCategory(Category category) {
+        this.category = category;
+
+        groups.get(GroupType.METADATA).getSteps().get(0)
+                .setContent(String.format("%s - %d Punkte", category.getName(), points));
+    }
+
+    private void initDefaultGroups() {
         groups.put(GroupType.METADATA, new Group(GroupType.METADATA)
-                .addStep(new Step(StepType.TEXT, String.format("%s - %d Punkte", category.getName(), points)))
-                .addStep(new Step(StepType.TEXT, type.getTitle())));
+                .addStep(new Step(StepType.TEXT, String.format("%d Punkte", points)))
+                .addStep(new Step(StepType.TEXT, String.format("%s - %s", type.getTitle(), answerTool.getTitle()))));
 
         groups.put(GroupType.QUESTION, new Group(GroupType.QUESTION)
-                .addStep(new Step(StepType.TEXT, questionText)));
+                .addStep(new Step(StepType.TEXT, this.question)));
 
         groups.put(GroupType.HINT, new Group(GroupType.HINT));
         groups.put(GroupType.ANSWER, new Group(GroupType.ANSWER));
@@ -63,10 +93,12 @@ public abstract class AbstractQuestion<T> {
         return points;
     }
 
+    @JsonIgnore
     public int getWrongPoints() {
-        return type.getHasPenalty() ? -getPoints() : 0;
+        return answerTool == Tool.BUZZER ? -getPoints() : 0;
     }
 
+    @JsonView(Views.WebSocket.class)
     public boolean isAnswered() {
         if (answers.stream().anyMatch(a -> a.getCorrect() == null)) {
             return false;
@@ -74,8 +106,13 @@ public abstract class AbstractQuestion<T> {
         return groups.get(GroupType.ANSWER).isComplete();
     }
 
+    @JsonIgnore
     public Type getType() {
         return type;
+    }
+
+    public Tool getAnswerTool() {
+        return answerTool;
     }
 
     public Map<GroupType, Group> getGroups() {
@@ -168,5 +205,9 @@ public abstract class AbstractQuestion<T> {
         for (Group grp : groups.values()) {
             grp.reset();
         }
+    }
+
+    public String getQuestion() {
+        return question;
     }
 }

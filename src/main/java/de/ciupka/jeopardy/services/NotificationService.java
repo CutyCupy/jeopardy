@@ -1,6 +1,5 @@
 package de.ciupka.jeopardy.services;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
@@ -9,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-import de.ciupka.jeopardy.controller.messages.AnswerUpdate;
+import de.ciupka.jeopardy.controller.messages.AnswersUpdate;
 import de.ciupka.jeopardy.controller.messages.BoardUpdate;
 import de.ciupka.jeopardy.controller.messages.LobbyUpdate;
 import de.ciupka.jeopardy.controller.messages.Notification;
@@ -100,17 +99,17 @@ public class NotificationService {
         try {
             AbstractQuestion<?> selected = game.getSelectedQuestion();
             this.message(ANSWER,
-                    selected.getAnswers().stream().map(a -> new AnswerUpdate(selected, a, false)).toList(),
+                    new AnswersUpdate(selected, false),
                     game.getPlayerIDs());
 
             this.message(ANSWER,
-                    selected.getAnswers().stream().map(a -> new AnswerUpdate(selected, a, true)).toList(),
+                    new AnswersUpdate(selected, true),
                     game.getMaster());
             return;
         } catch (CategoryNotFoundException e) {
         } catch (QuestionNotFoundException e) {
         }
-        this.message(ANSWER, new ArrayList<AnswerUpdate>());
+        this.message(ANSWER, new AnswersUpdate());
         return;
 
     }
@@ -132,4 +131,5 @@ public class NotificationService {
     public void sendNotification(Notification noti, UUID... users) {
         this.message(NOTIFICATION, noti, users);
     }
+
 }

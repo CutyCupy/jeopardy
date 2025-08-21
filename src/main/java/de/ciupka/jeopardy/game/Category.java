@@ -3,28 +3,32 @@ package de.ciupka.jeopardy.game;
 import java.util.ArrayList;
 import java.util.List;
 
-import de.ciupka.jeopardy.exception.CategoryNotFoundException;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonView;
+
+import de.ciupka.jeopardy.configs.Views;
 import de.ciupka.jeopardy.exception.QuestionNotFoundException;
 import de.ciupka.jeopardy.game.questions.AbstractQuestion;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Category {
 
+    @JsonView(Views.Common.class)
     private String name;
-    private String colorCode;
+    @JsonView(Views.Common.class)
+    private String color;
+    @JsonView(Views.Common.class)
     private List<AbstractQuestion<?>> questions;
-
-    public Category(String name, String colorCode) {
+    
+    @JsonCreator
+    public Category(@JsonProperty("name") String name,
+            @JsonProperty("color") String color,
+            @JsonProperty("questions") List<AbstractQuestion<?>> questions) {
         this.name = name;
-        this.colorCode = colorCode;
-        this.questions = new ArrayList<>();
-    }
-
-    public void addQuestion(AbstractQuestion<?> question) throws CategoryNotFoundException {
-        if (!question.getCategory().equals(this)) {
-            // TODO: Wrong Category
-            throw new CategoryNotFoundException();
-        }
-        questions.add(question);
+        this.color = color;
+        this.questions = questions == null ? new ArrayList<>() : questions;
     }
 
     public String getName() {
@@ -32,6 +36,7 @@ public class Category {
     }
 
     public List<AbstractQuestion<?>> getQuestions() {
+        questions.sort((a, b) -> a.getPoints() - b.getPoints());
         return questions;
     }
 
@@ -42,7 +47,15 @@ public class Category {
         return this.questions.get(idx);
     }
 
-    public String getColorCode() {
-        return colorCode;
+    public String getColor() {
+        return color;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
     }
 }

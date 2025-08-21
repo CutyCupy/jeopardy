@@ -2,6 +2,7 @@ package de.ciupka.jeopardy.game.questions.answer;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -23,6 +24,7 @@ public class SortOptions implements Stringable {
 
     public SortOptions(SortOption... options) {
         this.options = options;
+        Arrays.sort(this.options);
     }
 
     @Override
@@ -37,6 +39,15 @@ public class SortOptions implements Stringable {
 
     public SortOption[] getOptions() {
         return options;
+    }
+
+    public SortOptions asSortedList(boolean descending) {
+        if(descending) {
+            Arrays.sort(options, Collections.reverseOrder());
+            return this;
+        }
+        Arrays.sort(options);
+        return this;
     }
 
     public static class Serializer extends JsonSerializer<SortOptions> {
