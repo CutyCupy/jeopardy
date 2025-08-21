@@ -63,9 +63,6 @@ function onLobbyUpdate(msg) {
             status.replaceChildren();
         }
     }
-
-    // TODO: Send more information for a detailed update analysis and more detailed notification to the players.
-    showAlert('info', `Die Lobby wurde geupdated!`);
 }
 
 function animateCount(element, start, end, callback) {

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import de.ciupka.jeopardy.controller.messages.AnswersUpdate;
 import de.ciupka.jeopardy.controller.messages.BoardUpdate;
 import de.ciupka.jeopardy.controller.messages.LobbyUpdate;
+import de.ciupka.jeopardy.controller.messages.Notification;
 import de.ciupka.jeopardy.controller.messages.QuestionIdentifier;
 import de.ciupka.jeopardy.controller.messages.QuestionUpdate;
 import de.ciupka.jeopardy.exception.CategoryNotFoundException;
@@ -35,6 +36,8 @@ public class NotificationService {
     private static final String GAMEMASTER_UPDATE = "/topic/gamemaster-update";
     private static final String ON_BUZZER = "/topic/on-buzzer";
     private static final String ANSWER = "/topic/answer";
+
+    private static final String NOTIFICATION = "/queue/notification";
 
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -123,6 +126,10 @@ public class NotificationService {
         this.message(ACTIVE_PLAYER_UPDATE, true, p.getId());
         this.message(ACTIVE_PLAYER_UPDATE, false,
                 Arrays.stream(users).filter((v) -> !p.getId().equals(v)).toArray(UUID[]::new));
+    }
+
+    public void sendNotification(Notification noti, UUID... users) {
+        this.message(NOTIFICATION, noti, users);
     }
 
 }
